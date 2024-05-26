@@ -39,8 +39,8 @@ def parse_tags(tags):
 
 
 @cli.command()
-@click.argument("vault", type=click.Path())
-@click.argument("tags", type=click.STRING)
+@click.argument("vault", type=click.Path(), default="./vault.json")
+@click.option("-t", "tags", type=click.STRING)
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
 def add_tag(vault, filename, tags):
 
@@ -53,8 +53,8 @@ def add_tag(vault, filename, tags):
 
 
 @cli.command()
-@click.argument("vault", type=click.Path())
-@click.argument("tags", type=click.STRING)
+@click.argument("vault", type=click.Path(), default="./vault.json")
+@click.option("-t", "tags", type=click.STRING)
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
 def remove_tag(vault, filename, tags):
 
@@ -67,7 +67,7 @@ def remove_tag(vault, filename, tags):
 
 
 @cli.command()
-@click.argument("vault", type=click.Path())
+@click.argument("vault", type=click.Path(), default="./vault.json")
 @click.option(
     "-t",
     "tags",
@@ -87,7 +87,7 @@ def ls(vault, tags):
 
 
 @cli.command()
-@click.argument("vault", type=click.Path())
+@click.argument("vault", type=click.Path(), default="./vault.json")
 def list_tags(vault):
     vault_ = load_vault(vault)
 
