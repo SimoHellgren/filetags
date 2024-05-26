@@ -37,7 +37,7 @@ def parse_tags(tags):
 
 @cli.command()
 @click.argument("vault", type=click.Path())
-@click.argument("filename", type=click.Path())
+@click.argument("filename", type=click.Path(exists=True))
 @click.argument("tags", type=click.STRING)
 def add_tag(vault, filename, tags):
 
