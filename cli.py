@@ -53,6 +53,19 @@ def add_tag(vault, filename, tags):
 
 @cli.command()
 @click.argument("vault", type=click.Path())
+@click.argument("filename", type=click.Path(exists=True))
+@click.argument("tags", type=click.STRING)
+def remove_tag(vault, filename, tags):
+
+    vault_ = load_vault(vault)
+
+    vault_[filename] -= parse_tags(tags)
+
+    save_vault(vault, vault_)
+
+
+@cli.command()
+@click.argument("vault", type=click.Path())
 @click.option(
     "-t",
     "tags",
