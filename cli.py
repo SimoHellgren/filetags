@@ -6,7 +6,7 @@ import click
 flatten = chain.from_iterable
 
 # a vault is a mapping of filenames to tags
-Vault = defaultdict[str, set[str]]
+# Vault = defaultdict[str, set[str]]
 
 
 def load_vault(filename):
