@@ -58,6 +58,28 @@ class Vault:
                 json.dump({}, f, indent=2)
 
 
+class DelimitedSet(click.ParamType):
+    name = "delimited set"
+
+    def __init__(self, *args, delimiter=",", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.delimiter = delimiter
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, set):
+            return True
+
+        try:
+            return {elem.strip() for elem in value.split(self.delimiter)}
+
+        except ValueError:
+            self.fail(
+                f"Couldn't parse set from {value} with delimiter {self.delimiter}",
+                param,
+                ctx,
+            )
+
+
 @click.group()
 @click.option("--vault", type=click.Path(), default="./vault.json")
 @click.pass_context
@@ -71,16 +93,9 @@ def init_vault(vaultname):
     Vault.init(vaultname)
 
 
-def parse_tags(tags):
-    if not tags:
-        return set()
-
-    return {tag.strip() for tag in tags.split(",")}
-
-
 @cli.command()
 @click.pass_obj
-@click.option("-t", "tags", type=click.STRING)
+@click.option("-t", "tags", type=DelimitedSet())
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
 @click.option("-r", "read", type=click.File("r"), help="Read file or stdin (-r -)")
 def add_tag(vault: Vault, filename, tags, read):
@@ -89,16 +104,16 @@ def add_tag(vault: Vault, filename, tags, read):
         filenames.extend(read.read().strip().split("\n"))
 
     for fn in filenames:
-        vault.add_tags(fn, parse_tags(tags))
+        vault.add_tags(fn, tags)
 
 
 @cli.command()
 @click.pass_obj
-@click.option("-t", "tags", type=click.STRING)
+@click.option("-t", "tags", type=DelimitedSet())
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
 def remove_tag(vault: Vault, filename, tags):
     for fn in filename:
-        vault.remove_tags(fn, parse_tags(tags))
+        vault.remove_tags(fn, tags)
 
 
 @cli.command()
@@ -106,14 +121,12 @@ def remove_tag(vault: Vault, filename, tags):
 @click.option(
     "-t",
     "tags",
-    type=click.STRING,
+    type=DelimitedSet(),
     multiple=True,
     help="Each instance of -t is considered an AND condition, which is then OR'd with others",
 )
 def ls(vault, tags):
-    tag_groups = [parse_tags(ts) for ts in tags]
-
-    for file in vault.files(tag_groups):
+    for file in vault.files(tags):
         click.echo(file)
 
 
