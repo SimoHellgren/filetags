@@ -27,7 +27,7 @@ class Vault:
         ]
 
     def tags(self):
-        return sorted(set(flatten(self.values())))
+        return sorted(set(flatten(self.data.values())))
 
     def __getitem__(self, key):
         return self.data[key]
@@ -37,15 +37,6 @@ class Vault:
 
     def __delitem__(self, key):
         del self.data[key]
-
-    def key(self):
-        return self.data.keys()
-
-    def values(self):
-        return self.data.values()
-
-    def items(self):
-        return self.data.items()
 
     def __enter__(self):
         return self
