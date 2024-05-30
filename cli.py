@@ -9,13 +9,10 @@ from models import Vault, DelimitedSet
 @click.option("--vault", type=click.Path(), default="./vault.json")
 @click.pass_context
 def cli(ctx, vault: Path):
+    if not Path(vault).exists():
+        Vault.init(vault)
+
     ctx.obj = ctx.with_resource(Vault(vault))
-
-
-@cli.command()
-@click.argument("vaultname")
-def init_vault(vaultname: str):
-    Vault.init(vaultname)
 
 
 @cli.command()
