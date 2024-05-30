@@ -6,6 +6,27 @@ import click
 from utils import flatten
 
 
+class Tag:
+    def __init__(self, name, tag_along=None):
+        self.name = name
+        self.tag_along = tag_along or []
+
+    def to_dict(self):
+        return {self.name: self.tag_along}
+
+    def __str__(self):
+        return self.name
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        return self.name == other.name
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+
 class Vault:
     def __init__(self, filename: str):
         self.filename = filename
@@ -14,7 +35,7 @@ class Vault:
 
             data = json.load(f)
 
-            self.tags = data["tags"]
+            self.tags = {Tag(*tag) for tag in data["tags"]}
 
             converted_sets = {k: set(v) for k, v in data["entries"].items()}
             self.entries = defaultdict(set, converted_sets)
@@ -45,11 +66,11 @@ class Vault:
         self.entries[file] -= tags
 
     def create_tag(self, tag):
-        if tag in self.tags:
+        if tag in {t.name for t in self.tags}:
             print(tag, "already exists")
 
         else:
-            self.tags.append(tag)
+            self.tags.add(Tag(tag, []))
 
     def __enter__(self):
         return self
@@ -64,7 +85,7 @@ class Vault:
         return json.dumps(
             {
                 "entries": {name: list(tags) for name, tags in self.entries.items()},
-                "tags": self.tags,
+                "tags": [tag.to_dict() for tag in self.tags],
             },
             **kwargs,
         )

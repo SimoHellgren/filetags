@@ -58,7 +58,7 @@ def ls(vault: Vault, tags: List[Set[str]]):
 @cli.command()
 @click.pass_obj
 def list_tags(vault: Vault):
-    for tag in vault.tags():
+    for tag in vault.tags:
         click.echo(tag)
 
 
