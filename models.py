@@ -11,27 +11,32 @@ class Vault:
         self.filename = filename
 
         with open(filename, "r") as f:
-            converted_sets = {k: set(v) for k, v in json.load(f).items()}
-            self.data = defaultdict(set, converted_sets)
+
+            data = json.load(f)
+
+            self.tags = data["tags"]
+
+            converted_sets = {k: set(v) for k, v in data["entries"].items()}
+            self.entries = defaultdict(set, converted_sets)
 
     def files(self, tags: Optional[List[Set[str]]] = None) -> List[str]:
         return [
             file
-            for file, f_tags in self.data.items()
+            for file, f_tags in self.entries.items()
             if any(t.issubset(f_tags) for t in tags or []) or not tags
         ]
 
-    def tags(self) -> List[str]:
-        return sorted(set(flatten(self.data.values())))
+    def list_tags(self) -> List[str]:
+        return sorted(set(flatten(self.entries.values())))
 
     def items(self):
-        return self.data.items()
+        return self.entries.items()
 
     def add_tags(self, file: str, tags: Set[str]):
-        self.data[file] |= tags
+        self.entries[file] |= tags
 
     def remove_tags(self, file: str, tags: Set[str]):
-        self.data[file] -= tags
+        self.entries[file] -= tags
 
     def __enter__(self):
         return self
@@ -42,7 +47,12 @@ class Vault:
             with open(self.filename, "w") as f:
                 # default handles conversion of sets to lists.
                 # possibly need to do something more elegant later.
-                json.dump(self.data, f, indent=2, default=list)
+                json.dump(
+                    {"entries": self.entries, "tags": self.tags},
+                    f,
+                    indent=2,
+                    default=list,
+                )
 
     @staticmethod
     def init(name):
@@ -53,7 +63,14 @@ class Vault:
 
         else:
             with open(path, "w") as f:
-                json.dump({}, f, indent=2)
+                json.dump(
+                    {
+                        "entries": {},
+                        "tags": {},
+                    },
+                    f,
+                    indent=2,
+                )
 
 
 # custom classes for click
