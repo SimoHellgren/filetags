@@ -86,7 +86,7 @@ class Vault:
             else:
                 self.tags.add(tag_obj)
 
-    def get_tagalongs(self, tag: Tag, seen: set = None):
+    def get_tagalongs(self, tag: Tag, seen: set = None) -> Set[str]:
         """Recursively find all tag-alongs for a tag"""
         # keep track of already seen tags to avoid infinite loops
         if not seen:
