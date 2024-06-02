@@ -111,8 +111,12 @@ class Vault:
     def __exit__(self, exc_type, exc_value, trace):
         # only write if no exception
         if exc_type is None:
-            with open(self.filename, "w") as f:
-                f.write(self.to_json(indent=2))
+            self.save()
+
+    def save(self):
+        json_data = self.to_json(indent=2)
+        with open(self.filename, "w") as f:
+            f.write(json_data)
 
     def to_json(self, **kwargs):
         t = {
