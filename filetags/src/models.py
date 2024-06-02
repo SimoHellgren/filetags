@@ -2,6 +2,8 @@ from typing import Optional, Set, List
 from collections import defaultdict
 from pathlib import Path
 import json
+from tempfile import NamedTemporaryFile
+import shutil
 import click
 from filetags.src.utils import flatten, find
 
@@ -115,8 +117,17 @@ class Vault:
 
     def save(self):
         json_data = self.to_json(indent=2)
-        with open(self.filename, "w") as f:
+
+        # write to temporary file for safety
+        # because python<3.12, need to work around the tmpfile
+        # getting deleted before we can use it to replace the actual one
+        with NamedTemporaryFile(
+            "w", prefix="vault_", suffix=".json", dir=".", delete=False
+        ) as f:
             f.write(json_data)
+
+        shutil.copyfile(f.name, self.filename)
+        Path(f.name).unlink()
 
     def to_json(self, **kwargs):
         t = {
