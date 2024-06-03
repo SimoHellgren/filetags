@@ -7,7 +7,7 @@ def test_basic_tag():
     assert t.name == "test"
     assert t.tag_along == []
 
-    assert t.to_dict() == {"name": "test", "tag_along": []}
+    assert t.__json__() == {"name": "test", "tag_along": []}
 
 
 def test_tag_with_tagalongs():
@@ -16,7 +16,7 @@ def test_tag_with_tagalongs():
     assert t.name == "test"
     assert t.tag_along == ["test2", "test3"]
 
-    assert t.to_dict() == {"name": "test", "tag_along": ["test2", "test3"]}
+    assert t.__json__() == {"name": "test", "tag_along": ["test2", "test3"]}
 
 
 def test_tag_sets():

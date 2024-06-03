@@ -8,14 +8,27 @@ import click
 from filetags.src.utils import flatten, find
 
 
+class VaultJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # use __json__ method if found
+        if hasattr(obj, "__json__"):
+            return obj.__json__()
+
+        # encode sets as lists
+        if isinstance(obj, set):
+            return list(obj)
+
+        return super().default(obj)
+
+
 class Tag:
     def __init__(self, name, tag_along=None):
         self.name = name
         self.tag_along = tag_along or []
 
-    def to_dict(self):
-        # bit of an ugly hack that ensures that this converts to JSON properly.
-        return {"name": self.name, "tag_along": list(self.tag_along)}
+    def __json__(self):
+        """Returns a json-serializable version of self"""
+        return {"name": self.name, "tag_along": self.tag_along}
 
     def __str__(self):
         return self.name
@@ -116,7 +129,7 @@ class Vault:
             self.save()
 
     def save(self):
-        json_data = self.to_json(indent=2)
+        json_data = json.dumps(self, cls=VaultJSONEncoder, indent=2)
 
         # write to temporary file for safety
         # because python<3.12, need to work around the tmpfile
@@ -129,16 +142,12 @@ class Vault:
         shutil.copyfile(f.name, self.filename)
         Path(f.name).unlink()
 
-    def to_json(self, **kwargs):
-        t = {
-            "entries": {name: list(tags) for name, tags in self.entries.items()},
-            "tags": [tag.to_dict() for tag in self.tags],
+    def __json__(self):
+        """Returns a json-serializable version of self"""
+        return {
+            "entries": self.entries,
+            "tags": self.tags,
         }
-
-        return json.dumps(
-            t,
-            **kwargs,
-        )
 
     @staticmethod
     def init(name):
