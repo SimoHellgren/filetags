@@ -104,18 +104,19 @@ class Vault:
         if not seen:
             seen = set()
 
+        # add current tag to result set
         seen.add(tag.name)
 
-        result = set([tag.name, *tag.tag_along])
         for ta in tag.tag_along:
+            # skip if already seen
             if ta in seen:
                 continue
 
+            # find the tag-alongs of current tag-along and recurse
             ta_obj = self.get_tag(ta)
-            next_tas = self.get_tagalongs(ta_obj, seen)
-            result |= next_tas
+            self.get_tagalongs(ta_obj, seen)
 
-        return result
+        return seen
 
     def to_json(self, **kwargs) -> str:
         return json.dumps(self, cls=VaultJSONEncoder, **kwargs)
