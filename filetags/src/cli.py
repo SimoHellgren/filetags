@@ -9,12 +9,12 @@ import click
 from filetags.src.models import Vault, DelimitedSet
 
 
-@click.group(invoke_without_command=True)
+@click.group()
 @click.option("--vault", type=click.Path(), default="./vault.json")
 @click.pass_context
 def cli(ctx, vault: Path):
     if not Path(vault).exists():
-        vault = Vault(defaultdict(set), set())
+        vault_obj = Vault(defaultdict(set), set())
 
     else:
         with open(vault) as f:
