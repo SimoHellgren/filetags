@@ -1,18 +1,42 @@
 from pathlib import Path
 from typing import Set, List
+from collections import defaultdict
+from tempfile import NamedTemporaryFile
+import shutil
+import json
 import click
 
 from filetags.src.models import Vault, DelimitedSet
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.option("--vault", type=click.Path(), default="./vault.json")
 @click.pass_context
 def cli(ctx, vault: Path):
     if not Path(vault).exists():
-        Vault.init(vault)
+        vault = Vault(defaultdict(set), set())
 
-    ctx.obj = ctx.with_resource(Vault(vault))
+    else:
+        with open(vault) as f:
+            data = json.load(f)
+            vault_obj = Vault.from_json(data)
+
+    ctx.obj = vault_obj
+
+    @ctx.call_on_close
+    def save():
+        # write to temporary file for safety
+        # because python<3.12, need to work around the tmpfile
+        # getting deleted before we can use it to replace the actual one
+
+        json_data = vault_obj.to_json(indent=2)
+        with NamedTemporaryFile(
+            "w", prefix="vault_", suffix=".json", dir=".", delete=False
+        ) as f:
+            f.write(json_data)
+
+        shutil.copyfile(f.name, vault)
+        Path(f.name).unlink()
 
 
 @cli.command()

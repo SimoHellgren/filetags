@@ -1,18 +1,15 @@
-import unittest.mock
+import json
 import pytest
 from filetags.src.models import Vault
 
-data = '{"entries": {".\\\\files\\\\demo1.txt": ["xxx", "xx"], ".\\\\files\\\\demo2.json": [], ".\\\\files\\\\demo3.csv": ["xxx", "x", "xx"]}, "tags": [{"name": "xxx", "tag_along": ["xx"]}, {"name": "a", "tag_along": []}, {"name": "A", "tag_along": ["a"]}, {"name": "y", "tag_along": []}, {"name": "x", "tag_along": ["xxx"]}, {"name": "xx", "tag_along": ["x"]}]}'
-
-mock_file = unittest.mock.mock_open(read_data=data)
+test_data = '{"entries": {".\\\\files\\\\demo1.txt": ["xxx", "xx"], ".\\\\files\\\\demo2.json": [], ".\\\\files\\\\demo3.csv": ["xxx", "x", "xx"]}, "tags": [{"name": "xxx", "tag_along": ["xx"]}, {"name": "a", "tag_along": []}, {"name": "A", "tag_along": ["a"]}, {"name": "y", "tag_along": []}, {"name": "x", "tag_along": ["xxx"]}, {"name": "xx", "tag_along": ["x"]}]}'
 
 
 @pytest.fixture
 def vault():
     """Opens a vault with mocked data"""
-
-    with unittest.mock.patch("builtins.open", mock_file):
-        vault = Vault("")
+    data = json.loads(test_data)
+    vault = Vault.from_json(data)
 
     return vault
 

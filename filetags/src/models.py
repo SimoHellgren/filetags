@@ -1,9 +1,6 @@
-from typing import Optional, Set, List
+from typing import Optional, Set, List, DefaultDict
 from collections import defaultdict
-from pathlib import Path
 import json
-from tempfile import NamedTemporaryFile
-import shutil
 import click
 from filetags.src.utils import flatten, find
 
@@ -44,17 +41,17 @@ class Tag:
 
 
 class Vault:
-    def __init__(self, filename: str):
-        self.filename = filename
+    def __init__(self, entries: DefaultDict[str, set], tags: Set[Tag]):
+        self.entries = entries
+        self.tags = tags
 
-        with open(filename, "r") as f:
+    @classmethod
+    def from_json(cls, data):
+        tags = {Tag(tag["name"], tag["tag_along"]) for tag in data["tags"]}
 
-            data = json.load(f)
-
-            self.tags = {Tag(tag["name"], tag["tag_along"]) for tag in data["tags"]}
-
-            converted_sets = {k: set(v) for k, v in data["entries"].items()}
-            self.entries = defaultdict(set, converted_sets)
+        converted_sets = {k: set(v) for k, v in data["entries"].items()}
+        entries = defaultdict(set, converted_sets)
+        return cls(entries, tags)
 
     def files(self, tags: Optional[List[Set[str]]] = None) -> List[str]:
         return [
@@ -120,27 +117,8 @@ class Vault:
 
         return result
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, trace):
-        # only write if no exception
-        if exc_type is None:
-            self.save()
-
-    def save(self):
-        json_data = json.dumps(self, cls=VaultJSONEncoder, indent=2)
-
-        # write to temporary file for safety
-        # because python<3.12, need to work around the tmpfile
-        # getting deleted before we can use it to replace the actual one
-        with NamedTemporaryFile(
-            "w", prefix="vault_", suffix=".json", dir=".", delete=False
-        ) as f:
-            f.write(json_data)
-
-        shutil.copyfile(f.name, self.filename)
-        Path(f.name).unlink()
+    def to_json(self, **kwargs) -> str:
+        return json.dumps(self, cls=VaultJSONEncoder, **kwargs)
 
     def __json__(self):
         """Returns a json-serializable version of self"""
@@ -148,24 +126,6 @@ class Vault:
             "entries": self.entries,
             "tags": self.tags,
         }
-
-    @staticmethod
-    def init(name):
-        path = Path(name)
-
-        if path.exists():
-            click.echo(f"{name} already exists.")
-
-        else:
-            with open(path, "w") as f:
-                json.dump(
-                    {
-                        "entries": {},
-                        "tags": {},
-                    },
-                    f,
-                    indent=2,
-                )
 
 
 # custom classes for click
