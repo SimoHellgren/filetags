@@ -57,14 +57,14 @@ class Vault:
         self,
         select: Optional[List[Set[str]]] = None,
         exclude: Optional[List[Set[str]]] = None,
-    ) -> List[str]:
+    ) -> dict[str, set[str]]:
 
-        return [
-            file
+        return {
+            file: f_tags
             for file, f_tags in self.entries.items()
             if (any(t.issubset(f_tags) for t in select or []) or not select)
             and not any(t.issubset(f_tags) for t in exclude or [])
-        ]
+        }
 
     def list_tags(self) -> List[str]:
         return sorted(set(flatten(self.entries.values())))

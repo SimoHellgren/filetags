@@ -78,9 +78,13 @@ def remove_tag(vault: Vault, filename: List[Path], tags: Set[str]):
     multiple=True,
     help="Each instance of `exclude` is considered an AND condition, which is then OR'd with others",
 )
-def ls(vault: Vault, select: List[Set[str]], exclude: List[Set[str]]):
-    for file in vault.files(select, exclude):
-        click.echo(file)
+@click.option(
+    "-t", "tags", help="Flag to also print tags ", is_flag=True, default=False
+)
+def ls(vault: Vault, select: List[Set[str]], exclude: List[Set[str]], tags: bool):
+    for file, f_tags in vault.files(select, exclude).items():
+        msg = file + (f"\t[{', '.join(f_tags)}]" if tags else "")
+        click.echo(msg)
 
 
 @cli.group(help="Subcommands for tag management")

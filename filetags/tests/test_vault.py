@@ -72,7 +72,7 @@ def test_files_filters(vault: Vault):
     assert sorted(vault.files([{"a"}])) == ["demo1", "demo3"]
 
     # select and'd tags
-    assert vault.files([{"x", "xx"}]) == ["demo3"]
+    assert sorted(vault.files([{"x", "xx"}])) == ["demo3"]
 
     # select or'd tags
     assert sorted(vault.files([{"x"}, {"y"}])) == ["demo2", "demo3"]
@@ -84,10 +84,10 @@ def test_files_filters(vault: Vault):
     assert sorted(vault.files(exclude=[{"a", "x"}])) == ["demo1", "demo2", "demo4"]
 
     # exclude or'd tags
-    assert vault.files(exclude=[{"a"}, {"y"}]) == ["demo4"]
+    assert sorted(vault.files(exclude=[{"a"}, {"y"}])) == ["demo4"]
 
     # both select and exclude
-    assert vault.files(select=[{"a"}], exclude=[{"x"}]) == ["demo1"]
+    assert sorted(vault.files(select=[{"a"}], exclude=[{"x"}])) == ["demo1"]
 
 
 def test_delete_tag(vault: Vault):
