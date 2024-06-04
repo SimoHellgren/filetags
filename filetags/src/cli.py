@@ -39,7 +39,7 @@ def cli(ctx, vault: Path):
         Path(f.name).unlink()
 
 
-@cli.command()
+@cli.command(help="Add tags to files")
 @click.pass_obj
 @click.option("-t", "tags", type=DelimitedSet())
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
@@ -53,7 +53,7 @@ def add_tag(vault: Vault, filename: List[Path], tags: Set[str], read: str):
         vault.add_tags(fn, tags)
 
 
-@cli.command()
+@cli.command(help="Remove tags from files")
 @click.pass_obj
 @click.option("-t", "tags", type=DelimitedSet())
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
@@ -62,7 +62,7 @@ def remove_tag(vault: Vault, filename: List[Path], tags: Set[str]):
         vault.remove_tags(fn, tags)
 
 
-@cli.command()
+@cli.command(help="List files, optionally filtering by tags")
 @click.pass_obj
 @click.option(
     "-s",
@@ -83,7 +83,7 @@ def ls(vault: Vault, select: List[Set[str]], exclude: List[Set[str]]):
         click.echo(file)
 
 
-@cli.group()
+@cli.group(help="Subcommands for tag management")
 @click.pass_obj
 def tag(vault):
     pass
