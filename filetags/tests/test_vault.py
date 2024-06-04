@@ -1,17 +1,4 @@
-import json
-import pytest
 from filetags.src.models import Vault
-
-test_data = '{"entries": {".\\\\files\\\\demo1.txt": ["xxx", "xx"], ".\\\\files\\\\demo2.json": [], ".\\\\files\\\\demo3.csv": ["xxx", "x", "xx"]}, "tags": [{"name": "xxx", "tag_along": ["xx"]}, {"name": "a", "tag_along": []}, {"name": "A", "tag_along": ["a"]}, {"name": "y", "tag_along": []}, {"name": "x", "tag_along": ["xxx"]}, {"name": "xx", "tag_along": ["x"]}]}'
-
-
-@pytest.fixture
-def vault():
-    """Opens a vault with mocked data"""
-    data = json.loads(test_data)
-    vault = Vault.from_json(data)
-
-    return vault
 
 
 def test_open_vault(vault: Vault):
@@ -65,3 +52,39 @@ def test_add_tagalongs_preserves_existing(vault: Vault):
     vault.add_tagalongs("x", {"y", "yy"})
 
     assert current.issubset(x.tag_along)
+
+
+def test_files_all(vault: Vault):
+    files = [
+        "demo1",
+        "demo2",
+        "demo3",
+    ]
+
+    vault_ls = vault.files()
+
+    for file in files:
+        assert file in vault_ls
+
+
+def test_files_filters(vault: Vault):
+    # select single tag
+    assert sorted(vault.files([{"a"}])) == ["demo1", "demo3"]
+
+    # select and'd tags
+    assert vault.files([{"x", "xx"}]) == ["demo3"]
+
+    # select or'd tags
+    assert sorted(vault.files([{"x"}, {"y"}])) == ["demo2", "demo3"]
+
+    # exclude single tag
+    assert sorted(vault.files(exclude=[{"a"}])) == ["demo2", "demo4"]
+
+    # exclude and'd tags
+    assert sorted(vault.files(exclude=[{"a", "x"}])) == ["demo1", "demo2", "demo4"]
+
+    # exclude or'd tags
+    assert vault.files(exclude=[{"a"}, {"y"}]) == ["demo4"]
+
+    # both select and exclude
+    assert vault.files(select=[{"a"}], exclude=[{"x"}]) == ["demo1"]

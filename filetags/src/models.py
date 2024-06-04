@@ -62,8 +62,7 @@ class Vault:
         return [
             file
             for file, f_tags in self.entries.items()
-            if any(t.issubset(f_tags) for t in select or [])
-            or not select
+            if (any(t.issubset(f_tags) for t in select or []) or not select)
             and not any(t.issubset(f_tags) for t in exclude or [])
         ]
 
