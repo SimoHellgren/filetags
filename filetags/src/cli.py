@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Set, List
-from collections import defaultdict
+from collections import defaultdict, Counter
 from tempfile import NamedTemporaryFile
 import shutil
 import json
@@ -154,6 +154,17 @@ def add_tag_along(vault: Vault, tag: str, tag_along: Set[str]):
 @click.pass_obj
 def remove_tag_along(vault: Vault, tag: str, tag_along: Set[str]):
     vault.remove_tagalongs(tag, tag_along)
+
+
+@tag.command(name="stats")
+@click.pass_obj
+def tag_stats(vault: Vault):
+    tags = vault.tags
+
+    counts = Counter(flatten(vault.files().values()))
+
+    for tag in tags:
+        click.echo(f"{tag.name}: {counts[tag.name]}")
 
 
 if __name__ == "__main__":
