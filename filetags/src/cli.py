@@ -170,11 +170,12 @@ def tag_stats(vault: Vault):
 
 @tag.command(name="combos")
 @click.option("-n", "n", default=2, type=click.INT)
+@click.option("-k", "k", default=None, type=click.INT, help="number of combos to print")
 @click.pass_obj
-def tag_combos(vault: Vault, n: int):
+def tag_combos(vault: Vault, n: int, k: int):
     combos = (combinations(it, n) for it in vault.entries.values())
 
-    for names, count in Counter(flatten(map(tuple, combos))).most_common():
+    for names, count in Counter(flatten(map(tuple, combos))).most_common(k):
         click.echo(f"{names}: {count}")
 
 
