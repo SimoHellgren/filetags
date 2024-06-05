@@ -7,6 +7,7 @@ import json
 import click
 
 from filetags.src.models import Vault, DelimitedSet
+from filetags.src.utils import flatten
 
 
 @click.group()
@@ -52,16 +53,17 @@ def show(vault: Vault, filename: str):
 
 @cli.command(help="Add tags to files")
 @click.pass_obj
-@click.option("-t", "tags", type=DelimitedSet())
+@click.option("-t", "tags", type=DelimitedSet(), multiple=True)
 @click.option("-f", "filename", type=click.Path(exists=True), multiple=True)
 @click.option("-r", "read", type=click.File("r"), help="Read file or stdin (-r -)")
-def add_tag(vault: Vault, filename: List[Path], tags: Set[str], read: str):
+def add_tag(vault: Vault, filename: List[Path], tags: list[set[str]], read: str):
+    all_tags = set(flatten(tags))
     filenames = filename or []
     if read:
         filenames.extend(read.read().strip().split("\n"))
 
     for fn in filenames:
-        vault.add_tags(fn, tags)
+        vault.add_tags(fn, all_tags)
 
 
 @cli.command(help="Remove tags from files")
