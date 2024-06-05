@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Set, List
+from itertools import combinations
 from collections import defaultdict, Counter
 from tempfile import NamedTemporaryFile
 import shutil
@@ -165,6 +166,16 @@ def tag_stats(vault: Vault):
 
     for tag in tags:
         click.echo(f"{tag.name}: {counts[tag.name]}")
+
+
+@tag.command(name="combos")
+@click.option("-n", "n", default=2, type=click.INT)
+@click.pass_obj
+def tag_combos(vault: Vault, n: int):
+    combos = (combinations(it, n) for it in vault.entries.values())
+
+    for names, count in Counter(flatten(map(tuple, combos))).most_common():
+        click.echo(f"{names}: {count}")
 
 
 if __name__ == "__main__":
