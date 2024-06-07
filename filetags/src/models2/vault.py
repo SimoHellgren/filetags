@@ -3,13 +3,19 @@ from filetags.src.models2.tag import Tag
 
 
 class Vault:
-    def __init__(self, entries):
+    def __init__(self, entries: list[Tag]):
         self._entries = entries
 
     def entries(self):
         for file in self._entries:
             print(file.name, [str(child) for child in file.children])
 
+        print()
+
+    def find(self, tag: Tag):
+        for file in self._entries:
+            if file.contains(tag):
+                print(file)
         print()
 
     def add_entry(self, name: str):
@@ -32,13 +38,5 @@ if __name__ == "__main__":
         data = json.load(f)
 
     vault = Vault([parse(e) for e in data])
-
-    vault.entries()
-
-    vault.add_entry("file3")
-
-    vault.entries()
-
-    vault.remove_entry("file2")
 
     vault.entries()

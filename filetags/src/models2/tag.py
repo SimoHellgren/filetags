@@ -1,3 +1,6 @@
+from typing import Optional, Self
+
+
 class Tag:
     def __init__(self, name, children=None):
         self.name = name
@@ -14,3 +17,27 @@ class Tag:
 
     def __json__(self):
         return {"name": self.name, "children": self.children}
+
+    def find(self, tag: Self) -> Optional[Self]:
+        # None matches any tag
+        if tag.name == self.name or tag.name is None:
+            return self
+
+        for child in self.children:
+            res = child.find(tag)
+            if res:
+                return res
+
+    def contains(self, tag: Self) -> bool:
+        node = self.find(tag)
+
+        # top level node not matched
+        if not node:
+            return False
+
+        # no more children to search
+        if not tag.children:
+            return True
+
+        # all children must match
+        return all(node.find(child) for child in tag.children)
