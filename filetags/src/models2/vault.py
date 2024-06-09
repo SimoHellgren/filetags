@@ -8,15 +8,12 @@ class Vault:
 
     def entries(self):
         for file in self._entries:
-            print(file.name, [str(child) for child in file.children])
-
-        print()
+            yield file.name, [str(child) for child in file.children]
 
     def find(self, tag: Tag):
         for file in self._entries:
             if file.contains(tag):
-                print(file)
-        print()
+                yield file
 
     def add_entry(self, name: str):
         entry = Tag(name)
