@@ -127,7 +127,11 @@ class Node(Generic[T]):
         return self.parent is None
 
     def __str__(self) -> str:
-        return self.value
+        """Return a string-representation of the whole tree"""
+        children = ",".join(
+            str(child) for child in sorted(self.children, key=lambda x: x.value)
+        )
+        return f"{self.value}" + (f"[{children}]" if children else "")
 
     def __repr__(self) -> str:
         return f"Node({self.value})"
