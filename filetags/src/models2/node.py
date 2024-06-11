@@ -1,0 +1,127 @@
+from typing import Self, TypeVar, Generic, Optional, Generator
+
+T = TypeVar("T")
+
+
+class Node(Generic[T]):
+    def __init__(
+        self,
+        value: T,
+        children: Optional[list[Self]] = None,
+        parent: Optional[Self] = None,
+    ):
+        self.value = value
+        self.parent = parent
+        if parent:
+            parent.add_child(self)
+
+        self.children = children or []
+        for child in self.children:
+            child.parent = self
+
+    def iter_path_reverse(self) -> Generator[Self, None, None]:
+        node = self
+        while node is not None:
+            yield node
+            node = node.parent
+
+    @property
+    def root(self):
+        node = self
+        while node.parent:
+            node = node.parent
+
+        return node
+
+    def path(self) -> tuple[Self]:
+        return tuple(reversed(list(self.iter_path_reverse())))
+
+    def get_path(self, path: list[T]) -> Self:
+        """Starting from self, traverse path and return node if found.
+        Essentially, a stricter versoin of get_path_remainder:
+        unless the whole path is found, None is returned
+        """
+        node, remainder = self.get_path_remainder(path)
+        return None if remainder else node
+
+    def get_path_remainder(self, path: list[T]) -> tuple[Self, list[T]]:
+        """Starting from self, traverse path and return last node that is found.
+        Additionally return remainder of / unfound path.
+
+        Essentially, returns the lowest common parent of the tree and the given path.
+        """
+        if not path:
+            return None, path
+
+        first, *rest = path
+
+        # path must start at current node
+        if not first == self.value:
+            return None, path
+
+        node = self
+        for p in rest:
+            next_node = next((c for c in node.children if c.value == p), None)
+
+            if not next_node:
+                return node, rest
+
+            node = next_node
+            _, *rest = rest
+
+        return node, rest
+
+    @classmethod
+    def from_path(cls, path: list[T]):
+        nodes = [cls(p) for p in path]
+        for parent, child in zip(nodes, nodes[1:]):
+            parent.add_child(child)
+
+        return nodes[0]
+
+    def ancestors(self) -> tuple[Self]:
+        """returns path from root to self"""
+        if not self.parent:
+            return tuple()
+
+        return self.parent.path()
+
+    def preorder(self) -> Generator[Self, None, None]:
+        """Iterate over the tree with preorder DFS"""
+        yield self
+        for child in self.children:
+            yield from child.preorder()
+
+    def add_child(self, other: Self):
+        if other.value not in {c.value for c in self.children}:
+            self.children.append(other)
+            other.parent = self
+
+    def siblings(self) -> list[Self]:
+        return [c for c in self.parent.children if c is not self]
+
+    def leaves(self):
+        return tuple(n for n in self.preorder() if n.is_leaf)
+
+    def attach(self, parent: Self):
+        parent.add_child(self)
+
+    def detach(self):
+        """Detaches from parent"""
+        # a clever trick would be to implement this as just self.siblings(), but perhaps best to be explicit here
+        self.parent.children = [c for c in self.parent.children if c is not self]
+        self.parent = None
+
+    @property
+    def is_leaf(self):
+        return not bool(self.children)
+
+    @property
+    def is_root(self):
+        return self.parent is None
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f"Node({self.value})"
