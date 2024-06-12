@@ -73,7 +73,7 @@ class Node(Generic[T]):
         node = self.find(lambda x: x.value == first)
 
         if node:
-            return node.glob(path)
+            yield from node.glob(path)
 
     def get_path(self, path: list[T]) -> Self:
         """Starting from self, traverse path and return node if found.

@@ -8,21 +8,22 @@ from filetags.src.models2.node import Node
 
 
 class Vault:
-    def __init__(self, entries: Node):
+    def __init__(self, entries: list[Node]):
         self._entries = entries
 
-    def entries(self) -> Generator[tuple[str, list[Node]], None, None]:
+    def entries(self) -> Generator[tuple[Node, list[Node]], None, None]:
         for file in self._entries:
             yield file, file.children
 
     def find(self, path: list[str]):
         for file, children in self.entries():
-            if any(c.get_path(path) for c in children):
+            # need to evaluate, as this is a generator
+            if next(file.find_path(path), None):
                 yield file, children
 
     @classmethod
     def from_json(cls, data: list) -> Self:
-        return cls(parse(e) for e in data)
+        return cls([parse(e) for e in data])
 
 
 def parse(entry: dict):
@@ -38,5 +39,5 @@ if __name__ == "__main__":
 
     vault = Vault.from_json(data)
 
-    for file, tags in vault.find(["p1"]):
+    for file, tags in vault.find(["a"]):
         print(file.value, list(map(str, tags)))

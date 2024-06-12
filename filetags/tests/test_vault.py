@@ -17,8 +17,18 @@ def test_find(vault: Vault):
     # get nodes for setup
     file1, file2 = sorted(vault._entries, key=lambda x: x.value)
 
-    # result1 = list(vault.find([""]))
+    # transpose to get a nice list of files
+    (files, _) = zip(*vault.find(["A"]))
 
-    # assert file1.get_path(["file1", "A"])
-    # assert file1 in result1
-    # assert file2 not in result1
+    assert file1 in files
+    assert file2 not in files
+
+    (files, _) = zip(*vault.find(["b"]))
+
+    assert file1 in files
+    assert file2 in files
+
+    (files, _) = zip(*vault.find(["B", "b"]))
+
+    assert file1 not in files
+    assert file2 in files

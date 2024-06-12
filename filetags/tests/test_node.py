@@ -274,3 +274,9 @@ def test_find_path(nodes: list[Node]):
 
     result = list(n1.find_path([8, 7]))
     assert not result
+
+    result = list(n1.find_path([2, 5]))
+    assert not result
+
+    result = list(n1.find_path([999]))
+    assert not result
