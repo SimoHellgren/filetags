@@ -36,15 +36,48 @@ class Node(Generic[T]):
     def path(self) -> tuple[Self]:
         return tuple(reversed(list(self.iter_path_reverse())))
 
+    def paths_down(self) -> Generator[tuple[Self, ...], None, None]:
+        """Yield all paths to leaves from self"""
+        if not self.children:
+            yield self,
+
+        else:
+            for child in self.children:
+                for p in child.paths_down():
+                    yield tuple([self, *p])
+
     def find_all(self, pred: Callable[[Self], bool]) -> Iterable[Self]:
         return filter(pred, self.preorder())
 
     def find(self, pred: Callable[[Self], bool]) -> Optional[Self]:
         return next(self.find_all(pred), None)
 
+    def glob(self, path: list[str]) -> Generator[Self, None, None]:
+        """Wilcard path search (though only supports * for now)"""
+        for p in self.paths_down():
+            # if there's more path to check than remaining, can't be a match
+            # (there's probably a nicer way to implement this, perhaps zip_longest)
+            if len(p) < len(path):
+                continue
+
+            # otherwise, the whole path must match (or be wildcard)
+            if all(a and (a.value == b or b == "*") for a, b in zip(p, path)):
+                yield p
+
+    def find_path(self, path: list[str]):
+        """Otherwise same as glob, but could start from arbitrary node.
+        Debatable whether this should be in the Node class, or just be the caller's
+        responsibility.
+        """
+        first, *_ = path
+        node = self.find(lambda x: x.value == first)
+
+        if node:
+            return node.glob(path)
+
     def get_path(self, path: list[T]) -> Self:
         """Starting from self, traverse path and return node if found.
-        Essentially, a stricter versoin of get_path_remainder:
+        Essentially, a stricter version of get_path_remainder:
         unless the whole path is found, None is returned
         """
         node, remainder = self.get_path_remainder(path)

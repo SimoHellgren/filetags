@@ -221,3 +221,56 @@ def test_find(nodes: list[Node]):
     assert n6 == result
 
     assert tree.find(lambda x: x.value < 0) is None
+
+
+def test_paths_down(nodes: list[Node]):
+    tree = nodes[0]
+
+    paths = [tuple(map(lambda x: x.value, path)) for path in tree.paths_down()]
+
+    assert (1, 2, 3) in paths
+    assert (1, 2, 4) in paths
+    assert (1, 5) in paths
+    assert (1, 6, 7, 8) in paths
+
+    n6 = nodes[5]
+    n7 = nodes[6]
+    n8 = nodes[7]
+
+    (path,) = n6.paths_down()
+    assert path == (n6, n7, n8)
+
+
+def test_glob(nodes: list[Node]):
+    tree = nodes[0]
+    [n1, n2, n3, n4, n5, n6, n7, n8] = nodes
+
+    # should return all paths if wilcard root
+    result = list(tree.glob(["*"]))
+
+    for path in tree.paths_down():
+        assert path in result
+
+    # should return all paths if matches root
+    result = list(tree.glob([1]))
+
+    for path in tree.paths_down():
+        assert path in result
+
+    # should only match paths with 2
+    result = list(tree.glob(["*", 2]))
+
+    assert len(result) == 2
+    assert (n1, n2, n3) in result
+    assert (n1, n2, n4) in result
+
+
+def test_find_path(nodes: list[Node]):
+    tree = nodes[0]
+    [n1, n2, n3, n4, n5, n6, n7, n8] = nodes
+
+    result = list(n1.find_path([7, 8]))
+    assert result
+
+    result = list(n1.find_path([8, 7]))
+    assert not result
