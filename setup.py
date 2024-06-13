@@ -12,5 +12,5 @@ setup(
             "mypy",
         ]
     },
-    entry_points={"console_scripts": ["ftag = filetags.src.cli:cli"]},
+    entry_points={"console_scripts": ["ftag = filetags.src.new_cli:cli"]},
 )
