@@ -40,3 +40,20 @@ def test_find(vault: Vault):
     (files, _) = zip(*vault.find(include=["b"], exclude=["B", "b"]))
     assert file1 in files
     assert file2 not in files
+
+
+def test_rename_tag(vault: Vault):
+    # get nodes for setup
+    file1, file2 = sorted(vault._entries, key=lambda x: x.value)
+
+    vault.rename_tag("a", "x")
+
+    match = lambda val: lambda x: x.value == val
+
+    # file 1 should match x but not a
+    assert not file1.find(match("a"))
+    assert file1.find(match("x"))
+
+    # file 2 didn't have a to begin with: should match neither
+    assert not file2.find(match("a"))
+    assert not file2.find(match("x"))

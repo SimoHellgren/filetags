@@ -27,6 +27,13 @@ class Vault:
             if include and next(file.find_path(include), None):
                 yield file, children
 
+    def rename_tag(self, tag: str, new: str):
+        """Renames all instances of tag"""
+        for file, _ in self.entries():
+            nodes = file.find_all(lambda x: x.value == tag)
+            for node in nodes:
+                node.value = new
+
     @classmethod
     def from_json(cls, data: list) -> Self:
         return cls([parse(e) for e in data])
@@ -45,5 +52,5 @@ if __name__ == "__main__":
 
     vault = Vault.from_json(data)
 
-    for file, tags in vault.find(["a"]):
+    for file, tags in vault.entries():
         print(file.value, list(map(str, tags)))
