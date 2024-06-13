@@ -35,3 +35,8 @@ def test_find(vault: Vault):
     result = list(vault.find(["XXX"]))
 
     assert not result
+
+    # test(s) for excluding
+    (files, _) = zip(*vault.find(include=["b"], exclude=["B", "b"]))
+    assert file1 in files
+    assert file2 not in files

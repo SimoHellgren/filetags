@@ -1,4 +1,4 @@
-from typing import Generator, Self
+from typing import Generator, Self, Optional
 import json
 from filetags.src.models2.node import Node
 
@@ -15,10 +15,16 @@ class Vault:
         for file in self._entries:
             yield file, file.children
 
-    def find(self, path: list[str]):
+    def find(
+        self, include: Optional[list[str]] = None, exclude: Optional[list[str]] = None
+    ):
         for file, children in self.entries():
-            # need to evaluate, as this is a generator
-            if next(file.find_path(path), None):
+            # skip if exclude
+            if exclude and next(file.find_path(exclude), None):
+                continue
+
+            # yield if include
+            if include and next(file.find_path(include), None):
                 yield file, children
 
     @classmethod
