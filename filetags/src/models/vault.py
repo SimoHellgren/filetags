@@ -1,10 +1,12 @@
 from typing import Generator, Self, Optional
 import json
-from filetags.src.models2.node import Node
+from filetags.src.models.node import Node
 
 # TODO: consider implementing Vault as just a Node with a root value
 # this would likely need the implementation of a wilcard search to enable
 # skipping levels
+
+# TODO: tag-alongs
 
 
 class Vault:

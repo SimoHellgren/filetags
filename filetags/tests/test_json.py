@@ -1,6 +1,6 @@
 import json
-from filetags.src.models2.node import Node
-from filetags.src.models2.vault import Vault, VaultJSONEncoder
+from filetags.src.models.node import Node
+from filetags.src.models.vault import Vault, VaultJSONEncoder
 
 
 def nodes_equal(a: Node, b: Node):

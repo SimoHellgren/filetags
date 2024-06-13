@@ -1,6 +1,6 @@
 import pytest
-from filetags.src.models2.vault import Vault
-from filetags.src.models2.node import Node
+from filetags.src.models.vault import Vault
+from filetags.src.models.node import Node
 
 
 test_data = [
