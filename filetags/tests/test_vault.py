@@ -140,10 +140,45 @@ def test_add_nested_tag(vault: Vault):
 def test_add_existing_tag(vault: Vault):
     before, _ = sorted(vault._entries, key=lambda x: x.value)
 
-    # new top-level tag
+    # existing tag
     tag = Node("file1", [Node("A", [Node("b")])])
 
     vault.add_tag(tag)
+
+    after, _ = sorted(vault._entries, key=lambda x: x.value)
+
+    assert list(before.preorder()) == list(after.preorder())
+
+
+def test_remove_tag(vault: Vault):
+    file1, file2 = sorted(vault._entries, key=lambda x: x.value)
+
+    a, b = file1.children
+
+    vault.remove_tag(Node("file1", [Node("A")]))
+
+    assert a not in file1.children
+
+
+def test_remove_nested_tag(vault: Vault):
+    file1, file2 = sorted(vault._entries, key=lambda x: x.value)
+
+    A, B = file1.children
+    a, b = A.children
+
+    vault.remove_tag(Node("file1", [Node("A", [Node("a")])]))
+
+    assert A in file1.children
+    assert a not in A.children
+    assert b in A.children
+
+
+def test_remove_nonexistent_tag(vault: Vault):
+    before, _ = sorted(vault._entries, key=lambda x: x.value)
+
+    tag = Node("file1", [Node("A", [Node("XXX")])])
+
+    vault.remove_tag(tag)
 
     after, _ = sorted(vault._entries, key=lambda x: x.value)
 

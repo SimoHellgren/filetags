@@ -60,6 +60,18 @@ class Vault:
                 # when we already provide one as an input.
                 node.add_child(Node.from_path(remainder))
 
+    def remove_tag(self, tag: Node):
+        file = next((f for f in self._entries if f.value == tag.value), None)
+
+        if not file:
+            return
+
+        for path in tag.paths_down():
+            path_string = [e.value for e in path]
+
+            if node := file.get_path(path_string):
+                node.detach()
+
     def rename_tag(self, tag: str, new: str):
         """Renames all instances of tag"""
         for file, _ in self.entries():
