@@ -5,6 +5,8 @@ def test_empty():
     result = parse("")
 
     assert result
+    assert result.value == ""
+    assert not result.children
 
 
 def test_basic():
