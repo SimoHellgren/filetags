@@ -42,6 +42,11 @@ def test_find(vault: Vault):
     assert file1 in files
     assert file2 not in files
 
+    # empty `include` should include all files
+    find_result = vault.find(None)
+    entries = vault.entries()
+    assert list(find_result) == list(entries)
+
 
 def test_rename_tag(vault: Vault):
     # get nodes for setup

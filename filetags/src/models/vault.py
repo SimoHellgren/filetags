@@ -27,7 +27,7 @@ class Vault:
                 continue
 
             # yield if include
-            if include and next(file.find_path(include), None):
+            if not include or next(file.find_path(include), None):
                 yield file, children
 
     def add_entry(self, entry: Node):
