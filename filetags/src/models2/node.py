@@ -1,4 +1,4 @@
-from typing import Self, TypeVar, Generic, Optional, Generator, Callable, Iterable
+from typing import Self, TypeVar, Generic, Optional, Generator, Callable, Iterator
 
 T = TypeVar("T")
 
@@ -15,7 +15,7 @@ class Node(Generic[T]):
         if parent:
             parent.add_child(self)
 
-        self.children = children or []
+        self.children: list = children or []
         for child in self.children:
             child.parent = self
 
@@ -33,7 +33,7 @@ class Node(Generic[T]):
 
         return node
 
-    def path(self) -> tuple[Self]:
+    def path(self) -> tuple[Self, ...]:
         return tuple(reversed(list(self.iter_path_reverse())))
 
     def paths_down(self) -> Generator[tuple[Self, ...], None, None]:
@@ -46,13 +46,13 @@ class Node(Generic[T]):
                 for p in child.paths_down():
                     yield tuple([self, *p])
 
-    def find_all(self, pred: Callable[[Self], bool]) -> Iterable[Self]:
+    def find_all(self, pred: Callable[[Self], bool]) -> Iterator[Self]:
         return filter(pred, self.preorder())
 
     def find(self, pred: Callable[[Self], bool]) -> Optional[Self]:
         return next(self.find_all(pred), None)
 
-    def glob(self, path: list[str]) -> Generator[Self, None, None]:
+    def glob(self, path: list[str]) -> Generator[tuple[Self, ...], None, None]:
         """Wilcard path search (though only supports * for now)"""
         for p in self.paths_down():
             # if there's more path to check than remaining, can't be a match
@@ -75,7 +75,7 @@ class Node(Generic[T]):
         if node:
             yield from node.glob(path)
 
-    def get_path(self, path: list[T]) -> Self:
+    def get_path(self, path: list[T]) -> Self | None:
         """Starting from self, traverse path and return node if found.
         Essentially, a stricter version of get_path_remainder:
         unless the whole path is found, None is returned
@@ -83,7 +83,7 @@ class Node(Generic[T]):
         node, remainder = self.get_path_remainder(path)
         return None if remainder else node
 
-    def get_path_remainder(self, path: list[T]) -> tuple[Self, list[T]]:
+    def get_path_remainder(self, path: list[T]) -> tuple[Self | None, list[T]]:
         """Starting from self, traverse path and return last node that is found.
         Additionally return remainder of / unfound path.
 
@@ -118,7 +118,7 @@ class Node(Generic[T]):
 
         return nodes[0]
 
-    def ancestors(self) -> tuple[Self]:
+    def ancestors(self) -> tuple[Self, ...]:
         """returns path from root to self"""
         if not self.parent:
             return tuple()
@@ -137,6 +137,10 @@ class Node(Generic[T]):
             other.parent = self
 
     def siblings(self) -> list[Self]:
+        if not self.parent:
+            # root node has no siblings
+            return []
+
         return [c for c in self.parent.children if c is not self]
 
     def leaves(self):
