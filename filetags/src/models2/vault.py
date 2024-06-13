@@ -38,6 +38,17 @@ class Vault:
     def from_json(cls, data: list) -> Self:
         return cls([parse(e) for e in data])
 
+    def __json__(self):
+        return self._entries
+
+
+class VaultJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, "__json__"):
+            return obj.__json__()
+
+        return super().default(obj)
+
 
 def parse(entry: dict):
     name = entry["name"]

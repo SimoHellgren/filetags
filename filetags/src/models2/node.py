@@ -168,3 +168,6 @@ class Node(Generic[T]):
 
     def __repr__(self) -> str:
         return f"Node({self.value})"
+
+    def __json__(self):
+        return {"name": self.value, "children": self.children}
