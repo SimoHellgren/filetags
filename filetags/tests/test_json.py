@@ -43,6 +43,13 @@ def test_vault2(vault: Vault):
     assert nodes_equal(node1, node2)
 
 
+def test_empty_vault():
+    vault = Vault([])
+
+    assert vault
+    assert vault.__json__() == []
+
+
 def test_encoder(vault: Vault, nodes: list[Node]):
     [n1, n2, n3, n4, n5, n6, n7, n8] = nodes
 
