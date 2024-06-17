@@ -31,7 +31,15 @@ test_data = {
             ],
         },
     ],
-    "tagalongs": [],
+    "tagalongs": [
+        # basic tagalong chain
+        ["A", "B"],
+        ["B", "C"],
+        # circular tagalong
+        ["rock", "paper"],
+        ["paper", "scissors"],
+        ["scissors", "rock"],
+    ],
 }
 
 

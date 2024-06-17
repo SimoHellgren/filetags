@@ -90,6 +90,20 @@ class Vault:
 
         self.tagalongs = [p for p in self.tagalongs if p != pair]
 
+    def get_tagalongs(self, tag: str, seen: set = None) -> set[str]:  # type: ignore
+        if not seen:
+            seen = set()
+
+        seen.add(tag)
+
+        for a, b in self.tagalongs:
+            if b in seen or a != tag:
+                continue
+
+            # recurse
+            self.get_tagalongs(b, seen)
+        return seen
+
     @classmethod
     def from_json(cls, data: list) -> Self:
         return cls([parse(e) for e in data["entries"]], data["tagalongs"])

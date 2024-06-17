@@ -211,3 +211,15 @@ def test_remove_nonexistent_tag(vault: Vault):
     after, _ = sorted(vault._entries, key=lambda x: x.value)
 
     assert list(before.preorder()) == list(after.preorder())
+
+
+def test_get_tagalongs(vault: Vault):
+    res = vault.get_tagalongs("A")
+
+    assert res == {"A", "B", "C"}
+
+
+def test_circular_tagalongs(vault: Vault):
+    res = vault.get_tagalongs("rock")
+
+    assert res == {"rock", "paper", "scissors"}
