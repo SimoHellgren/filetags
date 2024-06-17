@@ -39,7 +39,7 @@ def cli(ctx, vault: Path):
         Path(f.name).unlink()
 
 
-@cli.command()
+@cli.command(help="List files (with optional filters)")
 @click.option("-t", "tag", is_flag=True)
 @click.option("-s", "select", default="")
 @click.option("-e", "exclude", default="")
@@ -57,7 +57,7 @@ def ls(vault: Vault, tag: bool, select: str, exclude: str):
         )
 
 
-@cli.command()
+@cli.command(help="Show details of one or more files")
 @click.pass_obj
 @click.argument("filename", nargs=-1)
 def show(vault: Vault, filename: str):
@@ -73,7 +73,7 @@ def show(vault: Vault, filename: str):
             )
 
 
-@cli.command()
+@cli.command(help="Add tags to files")
 @click.pass_obj
 @click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
 @click.option("-t", "tag", required=True, type=click.STRING)
@@ -89,7 +89,7 @@ def add(vault: Vault, filename: list[Path], tag: str):
         vault.add_tag(Node(file, tags))
 
 
-@cli.command()
+@cli.command(help="Remove tags from files")
 @click.pass_obj
 @click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
 @click.option("-t", "tag", required=True, type=click.STRING)
@@ -102,13 +102,13 @@ def remove(vault: Vault, filename: list[Path], tag: str):
         vault.remove_tag(Node(file, tags))
 
 
-@cli.group()
+@cli.group(help="Tag management")
 @click.pass_obj
 def tag(vault: Vault):
     pass
 
 
-@tag.command(name="ls")
+@tag.command(name="ls", help="List all tags")
 @click.pass_obj
 def list_tags(vault: Vault):
     for tag in sorted(vault.tags()):
