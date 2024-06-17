@@ -81,12 +81,10 @@ def add(vault: Vault, filename: list[Path], tag: str):
     # Can't really support multiple tags at the moment, since
     # they'd need to be merged in case top-level tags match
     # (otherwise e.g. -t a -t a --> [a,a], which isn't what we want)
-    tags = parse(tag).children
 
-    # a touch silly to construct a node here - this script would
-    # potentially benefit from not knowing implementation details
     for file in filename:
-        vault.add_tag(Node(file, tags))
+        node = parse(tag, file)
+        vault.add_tag(node)
 
 
 @cli.command(help="Remove tags from files")

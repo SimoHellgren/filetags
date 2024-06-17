@@ -50,8 +50,9 @@ parser = lark.Lark(GRAMMAR, start="root")
 transformer = Transformer()
 
 
-def parse(s: str) -> Node:
+def parse(s: str, rootvalue="") -> Node:
     tree = parser.parse(s)
+    transformer = Transformer(rootvalue)
     return transformer.transform(tree)
 
 
