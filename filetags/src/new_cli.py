@@ -1,12 +1,12 @@
+from collections import Counter
 from pathlib import Path
 import json
 import shutil
 from tempfile import NamedTemporaryFile
 import click
 from filetags.src.models.vault import Vault
-from filetags.src.models.node import Node
 from filetags.src.parser import parse
-from filetags.src.utils import flatten
+from filetags.src.utils import flatten, drop
 
 
 @click.group()
@@ -143,3 +143,21 @@ def remove_tagalong(vault: Vault, tag: str, tagalong: str):
     for x in tag:
         for y in tagalong:
             vault.remove_tagalong(x, y)
+
+
+@tag.command(name="stats")
+@click.option("-s", "skip", type=click.INT, default=0)
+@click.option("-l", "limit", type=click.INT, default=-1)
+@click.pass_obj
+def tag_stats(vault: Vault, skip: int, limit: int):
+    counts = Counter(
+        flatten((t.value for t in file.descendants()) for file, _ in vault.entries())
+    )
+
+    if limit < 0:
+        limit = None
+    else:
+        limit = limit + skip
+
+    for tag, count in drop(counts.most_common(limit), skip):
+        click.echo(f"{tag}: {count}")

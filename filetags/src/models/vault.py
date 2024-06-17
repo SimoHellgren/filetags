@@ -7,8 +7,6 @@ from filetags.src.utils import flatten
 # this would likely need the implementation of a wilcard search to enable
 # skipping levels
 
-# TODO: tag-alongs
-
 
 class Vault:
     def __init__(self, entries: list[Node], tagalongs: list):
