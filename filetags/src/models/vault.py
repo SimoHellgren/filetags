@@ -49,6 +49,7 @@ class Vault:
         file = next((f for f in self._entries if f.value == tag.value), None)
 
         if not file:
+            self.add_entry(tag)
             return
 
         # find a place for each path of tag

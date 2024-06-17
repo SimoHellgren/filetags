@@ -125,6 +125,20 @@ def test_add_tag(vault: Vault):
     assert [c.value for c in file1.children] == ["A", "B", "C"]
 
 
+def test_add_tag_new_file(vault: Vault):
+    # new file should get added
+    tag = Node("file3", [Node("X")])
+
+    vault.add_tag(tag)
+
+    file3 = vault.find(lambda x: x.value == "file3")
+
+    assert file3
+    (x,) = file3.children
+
+    assert x.value == "X"
+
+
 def test_add_nested_tag(vault: Vault):
     file1, file2 = sorted(vault._entries, key=lambda x: x.value)
 
