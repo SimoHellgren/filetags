@@ -116,3 +116,30 @@ def list_tags(vault: Vault):
 @click.argument("new")
 def rename_tag(vault: Vault, old: str, new: str):
     vault.rename_tag(old, new)
+
+
+@tag.command()
+@click.pass_obj
+def list_tagalongs(vault: Vault):
+    for a, b in vault.tagalongs:
+        click.echo(f"{a} -> {b}")
+
+
+@tag.command()
+@click.pass_obj
+@click.option("-t", "tag", multiple=True)
+@click.option("-ta", "tagalong", multiple=True)
+def add_tagalong(vault: Vault, tag: str, tagalong: str):
+    for x in tag:
+        for y in tagalong:
+            vault.add_tagalong(x, y)
+
+
+@tag.command()
+@click.pass_obj
+@click.option("-t", "tag", multiple=True)
+@click.option("-ta", "tagalong", multiple=True)
+def remove_tagalong(vault: Vault, tag: str, tagalong: str):
+    for x in tag:
+        for y in tagalong:
+            vault.remove_tagalong(x, y)

@@ -79,6 +79,17 @@ class Vault:
             flatten((x.value for x in file.descendants()) for file in self._entries)
         )
 
+    def add_tagalong(self, tag: str, tagalong: str):
+        pair = [tag, tagalong]
+
+        if pair not in self.tagalongs:
+            self.tagalongs.append(pair)
+
+    def remove_tagalong(self, tag: str, tagalong: str):
+        pair = [tag, tagalong]
+
+        self.tagalongs = [p for p in self.tagalongs if p != pair]
+
     @classmethod
     def from_json(cls, data: list) -> Self:
         return cls([parse(e) for e in data["entries"]], data["tagalongs"])
