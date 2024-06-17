@@ -223,3 +223,9 @@ def test_circular_tagalongs(vault: Vault):
     res = vault.get_tagalongs("rock")
 
     assert res == {"rock", "paper", "scissors"}
+
+
+def test_no_tagalongs(vault: Vault):
+    res = vault.get_tagalongs("just me, I'm afraid")
+
+    assert res == {"just me, I'm afraid"}
