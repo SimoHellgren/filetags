@@ -4,7 +4,9 @@ import shutil
 from tempfile import NamedTemporaryFile
 import click
 from filetags.src.models.vault import Vault
+from filetags.src.models.node import Node
 from filetags.src.parser import parse
+from filetags.src.utils import flatten
 
 
 @click.group()
@@ -69,6 +71,35 @@ def show(vault: Vault, filename: str):
                 click.style(f"{file.value}", fg="green")
                 + click.style(tagstring, fg="blue")
             )
+
+
+@cli.command()
+@click.pass_obj
+@click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
+@click.option("-t", "tag", required=True, type=click.STRING)
+def add(vault: Vault, filename: list[Path], tag: str):
+    # Can't really support multiple tags at the moment, since
+    # they'd need to be merged in case top-level tags match
+    # (otherwise e.g. -t a -t a --> [a,a], which isn't what we want)
+    tags = parse(tag).children
+
+    # a touch silly to construct a node here - this script would
+    # potentially benefit from not knowing implementation details
+    for file in filename:
+        vault.add_tag(Node(file, tags))
+
+
+@cli.command()
+@click.pass_obj
+@click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
+@click.option("-t", "tag", required=True, type=click.STRING)
+def remove(vault: Vault, filename: list[Path], tag: str):
+    tags = parse(tag).children
+
+    # a touch silly to construct a node here - this script would
+    # potentially benefit from not knowing implementation details
+    for file in filename:
+        vault.remove_tag(Node(file, tags))
 
 
 @cli.group()
