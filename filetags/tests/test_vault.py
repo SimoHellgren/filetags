@@ -22,35 +22,37 @@ def test_filter(vault: Vault):
     # get nodes for setup
     file1, file2 = sorted(vault._entries, key=lambda x: x.value)
 
+    # empty `include` should include all files
+    find_result = vault.filter()
+    entries = vault.entries()
+    assert list(find_result) == list(entries)
+
     # transpose to get a nice list of files
-    (files, _) = zip(*vault.filter(["A"]))
+    (files, _) = zip(*vault.filter([Node("A")]))
 
     assert file1 in files
     assert file2 not in files
 
-    (files, _) = zip(*vault.filter(["b"]))
+    (files, _) = zip(*vault.filter([Node("b")]))
 
     assert file1 in files
     assert file2 in files
 
-    (files, _) = zip(*vault.filter(["B", "b"]))
+    (files, _) = zip(*vault.filter([Node("B", [Node("b")])]))
 
     assert file1 not in files
     assert file2 in files
 
-    result = list(vault.filter(["XXX"]))
+    result = list(vault.filter([Node("XXX")]))
 
     assert not result
 
     # test(s) for excluding
-    (files, _) = zip(*vault.filter(include=["b"], exclude=["B", "b"]))
+    (files, _) = zip(
+        *vault.filter(include=[Node("b")], exclude=[Node("B", [Node("b")])])
+    )
     assert file1 in files
     assert file2 not in files
-
-    # empty `include` should include all files
-    find_result = vault.filter(None)
-    entries = vault.entries()
-    assert list(find_result) == list(entries)
 
 
 def test_rename_tag(vault: Vault):
@@ -80,7 +82,9 @@ def test_add_new_entry(vault: Vault):
     assert "file2" in filenames
     assert "file3" in filenames
 
-    assert list(vault.filter(["random new tag"]))
+    file1, file2, file3 = sorted(vault._entries, key=lambda x: x.value)
+
+    assert "random new tag" in [t.value for t in file3.children]
 
 
 def test_add_existing_entry(vault: Vault):
@@ -89,7 +93,7 @@ def test_add_existing_entry(vault: Vault):
     vault.add_entry(entry)  # should not do anything
 
     assert entry not in vault._entries
-    assert not list(vault.filter(["other new tag"]))
+    assert not list(vault.filter([Node("other new tag")]))
 
 
 def test_remove_entry(vault: Vault):

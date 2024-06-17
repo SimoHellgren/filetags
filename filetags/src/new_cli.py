@@ -46,15 +46,9 @@ def ls(vault: Vault, tag: bool, select: str, exclude: str):
     select_node = parse(select)
     exclude_node = parse(exclude)
 
-    for file, tags in vault.entries():
-        # skip if all excludes match
-        if exclude and all(n.is_subtree(file) for n in exclude_node.children):
-            continue
-
-        # skip if includes don't match
-        if select and not all(n.is_subtree(file) for n in select_node.children):
-            continue
-
+    # Having to specify children here is a touch clunky.
+    # Could just have parse return a list instead - will consider.
+    for file, tags in vault.filter(select_node.children, exclude_node.children):
         tagstring = f"\t[{','.join(str(t) for t in tags)}]" if tag else ""
         click.echo(
             click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="blue")
