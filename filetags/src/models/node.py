@@ -1,5 +1,5 @@
 from typing import Self, TypeVar, Generic, Optional, Generator, Callable, Iterator
-from filetags.src.utils import tail
+from filetags.src.utils import tail, find
 
 T = TypeVar("T")
 
@@ -202,3 +202,19 @@ class Node(Generic[T]):
         """
 
         return any(self.is_rooted_subtree(o) for o in other.preorder())
+
+    def merge(self, other: Self):
+        """recursively merges other into self"""
+
+        # must have same root
+        if self.value != other.value:
+            return
+
+        for child in other.children:
+            next_root = find(lambda x: x.value == child.value, self.children)
+
+            if next_root:
+                next_root.merge(child)
+
+            else:
+                self.add_child(child)

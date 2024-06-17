@@ -326,3 +326,33 @@ def test_is_subtree(nodes: list[Node]):
 
     # non-existent child should not match
     assert not Node(1, [Node(1000)]).is_subtree(n1)
+
+
+def test_merge():
+    a = Node("A", [Node("a")])
+    b = Node("A", [Node("b")])
+
+    a.merge(b)
+
+    x, y = a.children
+
+    assert x.value == "a"
+    assert y.value == "b"
+
+
+def test_merge_nested():
+    a = Node("A", [Node("a")])
+    b = Node("A", [Node("a", [Node("aa")])])
+
+    a.merge(b)
+
+    assert a.children[0].children[0].value == "aa"
+
+
+def test_merge_overlap():
+    a = Node("A", [Node("a"), Node("b")])
+    b = Node("A", [Node("b"), Node("c")])
+
+    a.merge(b)
+
+    assert sorted(n.value for n in a.children) == ["a", "b", "c"]
