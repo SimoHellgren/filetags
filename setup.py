@@ -11,6 +11,7 @@ setup(
             "pytest",
             "pytest-cov",
             "mypy",
+            "flake8",
         ]
     },
     entry_points={"console_scripts": ["ftag = filetags.src.new_cli:cli"]},
