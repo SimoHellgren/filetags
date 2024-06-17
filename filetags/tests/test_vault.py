@@ -229,3 +229,16 @@ def test_no_tagalongs(vault: Vault):
     res = vault.get_tagalongs("just me, I'm afraid")
 
     assert res == {"just me, I'm afraid"}
+
+
+def test_add_tag_with_tagalong(vault: Vault):
+    tag = Node("file1", [Node("paper")])
+
+    vault.add_tag(tag)
+
+    file1, *rest = sorted(vault._entries, key=lambda x: x.value)
+
+    values = [c.value for c in file1.children]
+    assert "rock" in values
+    assert "paper" in values
+    assert "scissors" in values

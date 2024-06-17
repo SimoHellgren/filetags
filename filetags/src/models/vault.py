@@ -49,6 +49,13 @@ class Vault:
         # find the file of interest
         file = next((f for f in self._entries if f.value == tag.value), None)
 
+        # add tagalongs
+        for t in tag.descendants():
+            tagalongs = self.get_tagalongs(t.value) - {t.value}  # clunky
+            for ta in tagalongs:
+                if ta not in [n.value for n in t.siblings()]:
+                    t.parent.add_child(Node(ta))
+
         if not file:
             self.add_entry(tag)
             return
