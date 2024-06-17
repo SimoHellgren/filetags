@@ -16,7 +16,7 @@ from filetags.src.utils import flatten, drop
 @click.pass_context
 def cli(ctx, vault: Path):
     if not Path(vault).exists():
-        vault_obj = Vault([])
+        vault_obj = Vault([], [])
 
     else:
         with open(vault) as f:
