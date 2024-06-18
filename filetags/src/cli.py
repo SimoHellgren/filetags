@@ -120,33 +120,6 @@ def rename_tag(vault: Vault, old: str, new: str):
     vault.rename_tag(old, new)
 
 
-@tag.command()
-@click.pass_obj
-def list_tagalongs(vault: Vault):
-    for a, b in vault.tagalongs:
-        click.echo(f"{a} -> {b}")
-
-
-@tag.command()
-@click.pass_obj
-@click.option("-t", "tag", multiple=True)
-@click.option("-ta", "tagalong", multiple=True)
-def add_tagalong(vault: Vault, tag: str, tagalong: str):
-    for x in tag:
-        for y in tagalong:
-            vault.add_tagalong(x, y)
-
-
-@tag.command()
-@click.pass_obj
-@click.option("-t", "tag", multiple=True)
-@click.option("-ta", "tagalong", multiple=True)
-def remove_tagalong(vault: Vault, tag: str, tagalong: str):
-    for x in tag:
-        for y in tagalong:
-            vault.remove_tagalong(x, y)
-
-
 @tag.command(name="stats")
 @click.option("-s", "skip", type=click.INT, default=0)
 @click.option("-l", "limit", type=click.INT, default=-1)
@@ -163,3 +136,36 @@ def tag_stats(vault: Vault, skip: int, limit: int):
 
     for tag, count in drop(counts.most_common(limit), skip):
         click.echo(f"{tag}: {count}")
+
+
+@cli.group(help="Tagalong management")
+@click.pass_obj
+def tagalong(vault: Vault):
+    pass
+
+
+@tagalong.command(name="ls")
+@click.pass_obj
+def list_tagalongs(vault: Vault):
+    for a, b in sorted(vault.tagalongs):
+        click.echo(f"{a} -> {b}")
+
+
+@tagalong.command(name="add")
+@click.pass_obj
+@click.option("-t", "tag", multiple=True)
+@click.option("-ta", "tagalong", multiple=True)
+def add_tagalong(vault: Vault, tag: str, tagalong: str):
+    for x in tag:
+        for y in tagalong:
+            vault.add_tagalong(x, y)
+
+
+@tagalong.command(name="remove")
+@click.pass_obj
+@click.option("-t", "tag", multiple=True)
+@click.option("-ta", "tagalong", multiple=True)
+def remove_tagalong(vault: Vault, tag: str, tagalong: str):
+    for x in tag:
+        for y in tagalong:
+            vault.remove_tagalong(x, y)
