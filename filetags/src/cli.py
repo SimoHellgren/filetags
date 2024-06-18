@@ -77,7 +77,9 @@ def show(vault: Vault, filename: str):
 
 @cli.command(help="Add tags to files")
 @click.pass_obj
-@click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
+@click.option(
+    "-f", "filename", required=True, type=click.Path(exists=True), multiple=True
+)
 @click.option("-t", "tag", required=True, type=click.STRING)
 def add(vault: Vault, filename: list[Path], tag: str):
     # Can't really support multiple tags at the moment, since
@@ -91,7 +93,9 @@ def add(vault: Vault, filename: list[Path], tag: str):
 
 @cli.command(help="Remove tags from files")
 @click.pass_obj
-@click.option("-f", "filename", required=True, type=click.Path(), multiple=True)
+@click.option(
+    "-f", "filename", required=True, type=click.Path(exists=True), multiple=True
+)
 @click.option("-t", "tag", required=True, type=click.STRING)
 def remove(vault: Vault, filename: list[Path], tag: str):
     for file in filename:
