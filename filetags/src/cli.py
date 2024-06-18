@@ -43,16 +43,16 @@ def cli(ctx, vault: Path):
 
 @cli.command(help="List files (with optional filters)")
 @click.option("-t", "tag", is_flag=True)
-@click.option("-s", "select", default="")
-@click.option("-e", "exclude", default="")
+@click.option("-s", "select", multiple=True)
+@click.option("-e", "exclude", multiple=True)
 @click.pass_obj
 def ls(vault: Vault, tag: bool, select: str, exclude: str):
-    select_node = parse(select)
-    exclude_node = parse(exclude)
-
     # Having to specify children here is a touch clunky.
     # Could just have parse return a list instead - will consider.
-    for file, tags in vault.filter(select_node.children, exclude_node.children):
+    select_nodes = [parse(s).children for s in select]
+    exclude_nodes = [parse(e).children for e in exclude]
+
+    for file, tags in vault.filter(select_nodes, exclude_nodes):
         tagstring = f"\t[{','.join(str(t) for t in tags)}]" if tag else ""
         click.echo(
             click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="blue")

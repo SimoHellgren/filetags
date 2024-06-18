@@ -21,15 +21,21 @@ class Vault:
         return next(filter(pred, self._entries), None)
 
     def filter(
-        self, include: Optional[list[Node]] = None, exclude: Optional[list[Node]] = None
+        self,
+        include: Optional[list[list[Node]]] = None,
+        exclude: Optional[list[list[Node]]] = None,
     ):
         for file, children in self.entries():
             # skip if exclude
-            if exclude and all(n.is_subtree(file) for n in exclude):
+            if exclude and any(
+                all(n.is_subtree(file) for n in excl) for excl in exclude
+            ):
                 continue
 
             # yield if include
-            if not include or all(n.is_subtree(file) for n in include):
+            if not include or any(
+                all(n.is_subtree(file) for n in incl) for incl in include
+            ):
                 yield file, children
 
     def add_entry(self, entry: Node):

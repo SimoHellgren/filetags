@@ -18,7 +18,7 @@ def test_find(vault: Vault):
     assert not vault.find(lambda x: x.value == "file999")
 
 
-def test_filter(vault: Vault):
+def test_filter_include(vault: Vault):
     # get nodes for setup
     file1, file2 = sorted(vault._entries, key=lambda x: x.value)
 
@@ -28,31 +28,57 @@ def test_filter(vault: Vault):
     assert list(find_result) == list(entries)
 
     # transpose to get a nice list of files
-    (files, _) = zip(*vault.filter([Node("A")]))
+    (files, _) = zip(*vault.filter([[Node("A")]]))
 
     assert file1 in files
     assert file2 not in files
 
-    (files, _) = zip(*vault.filter([Node("b")]))
+    (files, _) = zip(*vault.filter([[Node("b")]]))
 
     assert file1 in files
     assert file2 in files
 
-    (files, _) = zip(*vault.filter([Node("B", [Node("b")])]))
+    (files, _) = zip(*vault.filter([[Node("B", [Node("b")])]]))
 
     assert file1 not in files
     assert file2 in files
 
-    result = list(vault.filter([Node("XXX")]))
+    result = list(vault.filter([[Node("XXX")]]))
 
     assert not result
 
+
+def test_filter_exclude(vault: Vault):
+    # get nodes for setup
+    file1, file2 = sorted(vault._entries, key=lambda x: x.value)
+
     # test(s) for excluding
     (files, _) = zip(
-        *vault.filter(include=[Node("b")], exclude=[Node("B", [Node("b")])])
+        *vault.filter(include=[[Node("b")]], exclude=[[Node("B", [Node("b")])]])
     )
     assert file1 in files
     assert file2 not in files
+
+    # exclude A,B should only filter out file1
+    files, _ = zip(*vault.filter(exclude=[[Node("A"), Node("B")]]))
+
+    assert file1 not in files
+    assert file2 in files
+
+    # exclude A|B should filter out both
+    result = list(vault.filter(exclude=[[Node("A")], [Node("B")]]))
+
+    assert not result
+
+
+def test_filter_or(vault: Vault):
+    # get nodes for setup
+    file1, file2 = sorted(vault._entries, key=lambda x: x.value)
+
+    (files, _) = zip(*vault.filter([[Node("A")], [Node("B")]]))
+
+    assert file1 in files
+    assert file2 in files
 
 
 def test_rename_tag(vault: Vault):
@@ -93,7 +119,7 @@ def test_add_existing_entry(vault: Vault):
     vault.add_entry(entry)  # should not do anything
 
     assert entry not in vault._entries
-    assert not list(vault.filter([Node("other new tag")]))
+    assert not list(vault.filter([[Node("other new tag")]]))
 
 
 def test_remove_entry(vault: Vault):
