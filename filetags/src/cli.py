@@ -55,7 +55,7 @@ def ls(vault: Vault, tag: bool, select: str, exclude: str):
     for file, tags in vault.filter(select_nodes, exclude_nodes):
         tagstring = f"\t[{','.join(str(t) for t in tags)}]" if tag else ""
         click.echo(
-            click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="blue")
+            click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="cyan")
         )
 
 
@@ -71,7 +71,7 @@ def show(vault: Vault, filename: str):
             tagstring = f"\t[{','.join(str(t) for t in file.children)}]"
             click.echo(
                 click.style(f"{file.value}", fg="green")
-                + click.style(tagstring, fg="blue")
+                + click.style(tagstring, fg="cyan")
             )
 
 
