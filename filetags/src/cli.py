@@ -8,6 +8,9 @@ from filetags.src.models.vault import Vault
 from filetags.src.parser import parse
 from filetags.src.utils import flatten, drop
 
+# constants for internal, reserved tags
+LIKE_TAG = "__liked"
+
 
 @click.group()
 @click.option(
@@ -102,6 +105,24 @@ def remove(vault: Vault, filename: list[Path], tag: list[str]):
         for t in tag:
             node = parse(t, file)
             vault.remove_tag(node)
+
+
+@cli.command(help="Like files")
+@click.pass_context
+@click.option(
+    "-f", "filename", required=True, type=click.Path(exists=True), multiple=True
+)
+def like(context: click.Context, filename: list[Path]):
+    context.forward(add, tag=[LIKE_TAG])
+
+
+@cli.command(help="Unlike files")
+@click.pass_context
+@click.option(
+    "-f", "filename", required=True, type=click.Path(exists=True), multiple=True
+)
+def unlike(context: click.Context, filename: list[Path]):
+    context.forward(remove, tag=[LIKE_TAG])
 
 
 @cli.group(help="Tag management")
