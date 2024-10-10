@@ -1,5 +1,6 @@
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 import json
 import shutil
 from tempfile import NamedTemporaryFile
@@ -49,14 +50,35 @@ def cli(ctx, vault: Path):
 @click.option("-t", "tag", is_flag=True)
 @click.option("-s", "select", multiple=True)
 @click.option("-e", "exclude", multiple=True)
+@click.option("-minr", "min_rating", type=click.INT)
+@click.option("-maxr", "max_rating", type=click.INT)
 @click.pass_obj
-def ls(vault: Vault, tag: bool, select: str, exclude: str):
+def ls(
+    vault: Vault,
+    tag: bool,
+    select: str,
+    exclude: str,
+    min_rating: Optional[int] = None,
+    max_rating: Optional[int] = None,
+):
     # Having to specify children here is a touch clunky.
     # Could just have parse return a list instead - will consider.
     select_nodes = [parse(s).children for s in select]
     exclude_nodes = [parse(e).children for e in exclude]
 
     for file, tags in vault.filter(select_nodes, exclude_nodes):
+        # check for ratings if specified
+        if min_rating or max_rating:
+            rating_node = file.find(lambda x: x.value == RATING_TAG)
+
+            if not rating_node:
+                continue
+
+            rating = int(rating_node.children[0].value)
+
+            if not ((min_rating or 0) <= rating <= (max_rating or 100)):
+                continue
+
         tagstring = f"\t[{','.join(str(t) for t in tags)}]" if tag else ""
         click.echo(
             click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="cyan")
