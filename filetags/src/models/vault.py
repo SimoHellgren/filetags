@@ -42,6 +42,11 @@ class Vault:
         if not entry.value in [e.value for e in self._entries]:
             self._entries.append(entry)
 
+    def rename_entry(self, current_name: str, new_name: str) -> None:
+        entry = self.find(lambda x: x.value == current_name)
+        if entry:
+            entry.value = new_name
+
     def remove_entry(self, name: str) -> Node | None:
         entry = next((e for e in self._entries if e.value == name), None)
         self._entries = [e for e in self._entries if e is not entry]

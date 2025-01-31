@@ -1,4 +1,5 @@
 from collections import Counter
+from glob import glob
 from pathlib import Path
 from typing import Optional
 import json
@@ -19,7 +20,7 @@ RATING_TAG = "__rating"
     "--vault", type=click.Path(), default="./vault.json", help="Defaults to vault.json"
 )
 @click.pass_context
-def cli(ctx, vault: Path):
+def cli(ctx, vault: Path, windows_expand_args=False):
     if not Path(vault).exists():
         vault_obj = Vault([], [])
 
@@ -83,6 +84,18 @@ def ls(
         click.echo(
             click.style(f"{file.value}", fg="green") + click.style(tagstring, fg="cyan")
         )
+
+
+@cli.command(help="Move a file, preserving tags")
+@click.pass_obj
+@click.argument("source")
+@click.argument("dest")
+def mv(vault: Vault, source, dest):
+    source_glob = glob(source)
+    for file in source_glob:
+        print("Moving", file)
+        shutil.move(file, dest)
+        vault.rename_entry(file, dest)
 
 
 @cli.command(help="Show details of one or more files")
@@ -237,3 +250,7 @@ def remove_tagalong(vault: Vault, tag: str, tagalong: str):
     for x in tag:
         for y in tagalong:
             vault.remove_tagalong(x, y)
+
+
+def main():
+    cli(windows_expand_args=False)
