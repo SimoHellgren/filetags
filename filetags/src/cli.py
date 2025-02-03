@@ -93,9 +93,9 @@ def ls(
 def mv(vault: Vault, source, dest):
     source_glob = glob(source)
     for file in source_glob:
-        print("Moving", file)
-        shutil.move(file, dest)
-        vault.rename_entry(file, dest)
+        new_name = shutil.move(file, dest)
+        vault.rename_entry(file, new_name)
+        print(file, "-->", new_name)
 
 
 @cli.command(help="Show details of one or more files")
