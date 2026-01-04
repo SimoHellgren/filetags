@@ -1,4 +1,5 @@
 import lark
+
 from filetags.src.models.node import Node
 
 # grammar for parsing expressions like A[a,b],B[b] into nodes

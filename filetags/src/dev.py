@@ -9,39 +9,6 @@ SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 flatten = chain.from_iterable
 
 
-def init_db(path: Path):
-    with sqlite3.connect(path) as conn:
-        conn.executescript(SCHEMA_PATH.read_text())
-
-
-def get_or_create_file(vault: Path, file: Path):
-    with sqlite3.connect(vault) as conn:
-        q = """
-            INSERT INTO file (path) VALUES (?)
-            ON CONFLICT(path) DO UPDATE SET path=path --no-op update
-            RETURNING id
-        """
-        (file_id,) = conn.execute(q, (str(file),)).fetchone()
-
-    return file_id
-
-
-def get_or_create_tags(vault: Path, tags: list[str]):
-    with sqlite3.connect(vault) as conn:
-        q = """
-            INSERT INTO tag(name) VALUES (?)
-            ON CONFLICT (name) DO UPDATE SET name=name --no-op
-            RETURNING id, name
-        """
-        # loop to get the return values
-        result = []
-        for tag in tags:
-            row = conn.execute(q, (tag,)).fetchone()
-            result.append(row)
-
-    return result
-
-
 def mount(vault: Path, folder: Path):
     if not folder.is_dir():
         raise ValueError(f"{folder} is not a directory")
@@ -52,12 +19,6 @@ def mount(vault: Path, folder: Path):
                 conn.execute(
                     "INSERT OR IGNORE INTO file (path) VALUES (?)", (str(path),)
                 )
-
-
-def parse_edges(node):
-    yield from ((node["name"], child["name"]) for child in node["children"])
-    for child in node["children"]:
-        yield from parse_edges(child)
 
 
 def transform(node):
@@ -131,15 +92,4 @@ def add_filetags(vault: Path, file_id: int, node, parent_id=None):
 
 
 if __name__ == "__main__":
-    init_db(VAULT_PATH)
-
-    # mount(VAULT_PATH, Path("files"))
-
-    # tags = get_or_create_tags(VAULT_PATH, ["A", "B", "a", "b"])
-
-    # ts = [("A", [("a", []), ("b", [])]), ("B", [])]
-
-    # for t in ts:
-    #     add_filetags(VAULT_PATH, 1, t)
-
     load_json_vault(VAULT_PATH, "vault.json")

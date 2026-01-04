@@ -3,7 +3,14 @@ from collections import defaultdict
 from pathlib import Path
 
 import click
-from db.init import init_db
+
+from filetags.src.db.connect import get_vault
+from filetags.src.db.file import get_or_create_file
+from filetags.src.db.file_tag import attach_tag
+from filetags.src.db.init import init_db
+from filetags.src.db.tag import get_or_create_tag
+from filetags.src.parser import parse
+from filetags.src.utils import flatten
 
 VAULT_PATH = Path("vault.db")
 
@@ -13,7 +20,7 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.command(help="Initialize empty vault")
 @click.argument("filepath", type=click.Path(path_type=Path), default="vault.db")
 def init(filepath: Path):
     if filepath.exists():
@@ -24,6 +31,33 @@ def init(filepath: Path):
         click.echo(f"{filepath} created.")
 
 
+def attach_tree(conn, file_id, node, parent_id=None):
+    tag_id = get_or_create_tag(conn, node.value)
+    filetag_id = attach_tag(conn, file_id, tag_id, parent_id)
+    for child in node.children:
+        attach_tree(conn, file_id, child, filetag_id)
+
+
+@cli.command(help="Add tags to files")
+@click.option(
+    "-f",
+    "files",
+    required=True,
+    type=click.Path(path_type=Path, exists=True),
+    multiple=True,
+)
+@click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
+def add(files, tags):
+    root_tags = flatten(parse(t).children for t in tags)
+
+    with get_vault() as conn:
+        for file in files:
+            file_id = get_or_create_file(conn, file)
+            for root in root_tags:
+                attach_tree(conn, file_id, root)
+
+
+# testing stuff from this point down, to be refactored.
 @cli.command()
 @click.argument("filename", nargs=-1)
 def show(filename):
@@ -64,5 +98,9 @@ def show(filename):
         print(format_tags(root))
 
 
-if __name__ == "__main__":
+def main():
     cli()
+
+
+if __name__ == "__main__":
+    main()

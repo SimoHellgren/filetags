@@ -16,6 +16,7 @@ mypy = "^1.10.0"
 
 [tool.poetry.scripts]
 ftag = "filetags.src.cli:main"
+dev = "filetags.src.cli2:main"
 
 [build-system]
 requires = ["poetry-core"]
