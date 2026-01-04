@@ -1,4 +1,5 @@
 vault*.json
+*.db
 *.pyo
 *.pyc
 *.egg-info
