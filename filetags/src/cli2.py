@@ -16,8 +16,20 @@ VAULT_PATH = Path("vault.db")
 
 
 @click.group()
-def cli():
-    pass
+@click.option(
+    "--vault",
+    type=click.Path(path_type=Path),
+    default="./vault.db",
+    help="Path to vault file, default ./vault.db",
+)
+@click.pass_context
+def cli(ctx: click.Context, vault: Path):
+    if not vault.exists():
+        raise click.ClickException(
+            f"{vault} does not exist. Run `ftag init {vault}` to create"
+        )
+
+    ctx.obj = ctx.with_resource(get_vault(vault))
 
 
 @cli.command(help="Initialize empty vault")
@@ -47,10 +59,11 @@ def attach_tree(conn, file_id, node, parent_id=None):
     multiple=True,
 )
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
-def add(files, tags):
+@click.pass_obj
+def add(vault: sqlite3.Connection, files, tags):
     root_tags = flatten(parse(t).children for t in tags)
 
-    with get_vault() as conn:
+    with vault as conn:
         for file in files:
             file_id = get_or_create_file(conn, file)
             for root in root_tags:
@@ -66,10 +79,11 @@ def add(files, tags):
     multiple=True,
 )
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
-def remove(files, tags):
+@click.pass_obj
+def remove(vault: sqlite3.Connection, files, tags):
     root_tags = flatten(parse(t).children for t in tags)
 
-    with get_vault() as conn:
+    with vault as conn:
         for file in files:
             file_id = get_or_create_file(conn, file)
 
