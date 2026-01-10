@@ -1,4 +1,14 @@
 from sqlite3 import Connection
+from typing import Optional
+
+
+def create_tag(conn: Connection, name: str, category: Optional[str] = None):
+    result = conn.execute(
+        """INSERT INTO tag(name, category) VALUES (?, ?) RETURNING id,name,category""",
+        (name, category),
+    ).fetchone()
+
+    return result
 
 
 def get_or_create_tag(conn: Connection, tag: str) -> int:

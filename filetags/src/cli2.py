@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -13,7 +14,7 @@ from filetags.src.db.file_tag import (
     resolve_path,
 )
 from filetags.src.db.init import init_db
-from filetags.src.db.tag import get_or_create_tag, update_tags
+from filetags.src.db.tag import create_tag, get_or_create_tag, update_tags
 from filetags.src.models.node import Node
 from filetags.src.parser import parse
 from filetags.src.utils import flatten
@@ -163,6 +164,15 @@ def set_(vault: sqlite3.Connection, files: tuple[Path, ...], tags: tuple[str, ..
 @click.pass_obj
 def tag(vault: sqlite3.Connection):
     pass
+
+
+@tag.command(help="Create new tag", name="create")
+@click.option("-n", "--name", type=click.STRING, required=True)
+@click.option("-c", "--category", type=click.STRING)
+@click.pass_obj
+def new_tag(vault: sqlite3.Connection, name: str, category: Optional[str]):
+    with vault as conn:
+        create_tag(conn, name, category)
 
 
 @tag.command(help="Edit tag", name="edit")
