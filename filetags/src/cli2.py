@@ -5,9 +5,8 @@ from typing import Optional
 
 import click
 
-from filetags.src.db.connect import get_vault
-from filetags.src.db.file import get_or_create_file
-from filetags.src.db.file_tag import (
+from filetags.src.crud.file import get_or_create_file
+from filetags.src.crud.file_tag import (
     attach_tag,
     build_tree,
     detach_tag,
@@ -15,8 +14,7 @@ from filetags.src.db.file_tag import (
     replace_file_tag,
     resolve_path,
 )
-from filetags.src.db.init import init_db
-from filetags.src.db.tag import (
+from filetags.src.crud.tag import (
     create_tag,
     delete_tag,
     get_all_tags,
@@ -24,6 +22,8 @@ from filetags.src.db.tag import (
     get_tag_by_name,
     update_tags,
 )
+from filetags.src.db.connect import get_vault
+from filetags.src.db.init import init_db
 from filetags.src.models.node import Node
 from filetags.src.parser import parse
 from filetags.src.utils import flatten
