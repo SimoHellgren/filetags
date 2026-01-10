@@ -225,7 +225,9 @@ def edit_tag(vault: sqlite3.Connection, tag: list[str], clear_category: bool, **
     help="Remove the replaced tags entirely.",
 )
 @click.pass_obj
-def replace_tag(vault: sqlite3.Connection, old: tuple[str], new: str, remove: bool):
+def replace_tag(
+    vault: sqlite3.Connection, old: tuple[str, ...], new: str, remove: bool
+):
     with vault as conn:
         new_id = get_tag_by_name(conn, new)[0]
         for tag in old:
@@ -234,6 +236,21 @@ def replace_tag(vault: sqlite3.Connection, old: tuple[str], new: str, remove: bo
 
             if remove:
                 delete_tag(conn, old_id)
+
+
+@tag.command(help="Removes all instances of a tag.", name="delete")
+@click.argument("tags", nargs=-1, type=click.STRING, required=True)
+@click.pass_obj
+def remove_tag(vault: sqlite3.Connection, tags: tuple[str, ...]):
+    click.confirm(
+        "Are you sure? This will also delete all child filetags of deleted tags.",
+        abort=True,
+    )
+
+    with vault as conn:
+        for tag in tags:
+            tag_id = get_tag_by_name(conn, tag)[0]
+            delete_tag(conn, tag_id)
 
 
 def main():
