@@ -28,10 +28,10 @@ def update_tags(conn: Connection, names: list[str], data: dict):
     if forbidden := (data.keys() - ALLOWED_COLS):
         raise ValueError(f"Forbidden column(s): {forbidden}")
 
-    update_stmt = ",\n".join(f"SET {col} = ?" for col in data)
+    update_stmt = ",\n".join(f"{col} = ?" for col in data)
     name_phs = ",".join("?" for _ in names)
     q = f"""
-        UPDATE tag
+        UPDATE tag SET
             {update_stmt}
         WHERE name in ({name_phs})
     """

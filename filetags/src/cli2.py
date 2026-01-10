@@ -177,19 +177,28 @@ def new_tag(vault: sqlite3.Connection, name: str, category: Optional[str]):
 
 @tag.command(help="Edit tag", name="edit")
 @click.argument("tag", nargs=-1, type=click.STRING, required=True)
-@click.option("--name", "name", type=click.STRING)
-@click.option("--category", "category", type=click.STRING)
+@click.option("-n", "--name", type=click.STRING)
+@click.option("-c", "--category", type=click.STRING)
+@click.option(
+    "--clear-category", type=click.BOOL, is_flag=True, help="Sets category to null."
+)
 @click.pass_obj
-def edit_tag(vault: sqlite3.Connection, tag: list[str], **kwargs):
+def edit_tag(vault: sqlite3.Connection, tag: list[str], clear_category: bool, **kwargs):
     if len(tag) > 1 and kwargs["name"]:
         raise click.BadArgumentUsage(
             "--name can't be present when multiple tags are given."
         )
 
-    if not any(kwargs.values()):
+    if not (any(kwargs.values()) or clear_category):
         raise click.BadArgumentUsage("Provide at least one option.")
 
+    if clear_category and kwargs["category"]:
+        raise click.BadArgumentUsage("Can't both set and clear category.")
+
     data = {k: v for k, v in kwargs.items() if v is not None}
+
+    if clear_category:
+        data["category"] = None
 
     with vault as conn:
         update_tags(
