@@ -18,6 +18,10 @@ def get_tag_by_name(conn: Connection, name: str):
     return result
 
 
+def get_all_tags(conn: Connection):
+    return conn.execute("SELECT * FROM tag").fetchall()
+
+
 def get_or_create_tag(conn: Connection, tag: str) -> int:
     q = """
         INSERT INTO tag(name) VALUES (?)

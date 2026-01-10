@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from pathlib import Path
 from typing import Optional
@@ -18,6 +19,7 @@ from filetags.src.db.init import init_db
 from filetags.src.db.tag import (
     create_tag,
     delete_tag,
+    get_all_tags,
     get_or_create_tag,
     get_tag_by_name,
     update_tags,
@@ -251,6 +253,43 @@ def remove_tag(vault: sqlite3.Connection, tags: tuple[str, ...]):
         for tag in tags:
             tag_id = get_tag_by_name(conn, tag)[0]
             delete_tag(conn, tag_id)
+
+
+def compile_pattern(pattern: str, ignore_case: bool):
+    if not pattern:
+        return None
+
+    flags = re.IGNORECASE if ignore_case else 0
+
+    return re.compile(pattern, flags)
+
+
+@tag.command(help="List tags", name="ls")
+@click.option("-l", "long", type=click.BOOL, is_flag=True, help="Long listing format.")
+@click.option("-p", "--pattern", help="Filter output by regex pattern")
+@click.option("-i", "--ignore-case", is_flag=True)
+@click.option("-v", "--invert-match", is_flag=True)
+@click.pass_obj
+def list_tags(
+    vault: sqlite3.Connection,
+    long: bool,
+    pattern: str,
+    ignore_case: bool,
+    invert_match: bool,
+):
+    with vault as conn:
+        tags = get_all_tags(conn)
+
+    regex = compile_pattern(pattern, ignore_case)
+
+    for i, name, category in tags:
+        matched = bool(regex.search(name)) if regex else True
+
+        if invert_match:
+            matched = not matched
+
+        if matched:
+            click.echo(name + (f" ({category})" if long else ""))
 
 
 def main():
