@@ -1,4 +1,3 @@
-from pathlib import Path
 from sqlite3 import Connection
 
 from filetags.src.models.node import Node
@@ -53,7 +52,7 @@ def build_tree(file_tags: list) -> list[Node]:
 
 
 def get_file_tags(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
-    q = f"""
+    q = """
         SELECT
             file_tag.id,
             tag.name,
@@ -66,6 +65,10 @@ def get_file_tags(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
     """
     result = conn.execute(q, (file_id,)).fetchall()
     return result
+
+
+def replace_file_tag(conn: Connection, old_id: int, new_id: int):
+    conn.execute("UPDATE file_tag SET tag_id = ? where tag_id = ?", (new_id, old_id))
 
 
 def attach_tag(

@@ -11,10 +11,17 @@ from filetags.src.db.file_tag import (
     build_tree,
     detach_tag,
     get_file_tags,
+    replace_file_tag,
     resolve_path,
 )
 from filetags.src.db.init import init_db
-from filetags.src.db.tag import create_tag, get_or_create_tag, update_tags
+from filetags.src.db.tag import (
+    create_tag,
+    delete_tag,
+    get_or_create_tag,
+    get_tag_by_name,
+    update_tags,
+)
 from filetags.src.models.node import Node
 from filetags.src.parser import parse
 from filetags.src.utils import flatten
@@ -206,6 +213,27 @@ def edit_tag(vault: sqlite3.Connection, tag: list[str], clear_category: bool, **
             tag,
             data,
         )
+
+
+@tag.command(help="Replace all instances of a tag.", name="replace")
+@click.argument("old", nargs=-1, type=click.STRING, required=True)
+@click.option("-n", "--new", type=click.STRING)
+@click.option(
+    "--remove",
+    type=click.BOOL,
+    is_flag=True,
+    help="Remove the replaced tags entirely.",
+)
+@click.pass_obj
+def replace_tag(vault: sqlite3.Connection, old: tuple[str], new: str, remove: bool):
+    with vault as conn:
+        new_id = get_tag_by_name(conn, new)[0]
+        for tag in old:
+            old_id = get_tag_by_name(conn, tag)[0]
+            replace_file_tag(conn, old_id, new_id)
+
+            if remove:
+                delete_tag(conn, old_id)
 
 
 def main():

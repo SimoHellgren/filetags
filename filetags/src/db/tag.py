@@ -11,6 +11,13 @@ def create_tag(conn: Connection, name: str, category: Optional[str] = None):
     return result
 
 
+def get_tag_by_name(conn: Connection, name: str):
+    result = conn.execute(
+        "SELECT id, name, category FROM tag WHERE name = ?", (name,)
+    ).fetchone()
+    return result
+
+
 def get_or_create_tag(conn: Connection, tag: str) -> int:
     q = """
         INSERT INTO tag(name) VALUES (?)
@@ -38,3 +45,7 @@ def update_tags(conn: Connection, names: list[str], data: dict):
 
     vals = tuple([*data.values(), *names])
     conn.execute(q, vals)
+
+
+def delete_tag(conn: Connection, tag_id: int):
+    conn.execute("DELETE FROM tag WHERE id = ?", (tag_id,))
