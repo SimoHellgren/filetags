@@ -1,3 +1,4 @@
+from pathlib import Path
 from sqlite3 import Connection
 
 import click
@@ -55,9 +56,14 @@ def ls(vault: Connection):
             click.echo(f"{tag} -> {tagalong}")
 
 
-@tagalong.command(help="Apply all tagalongs.")
+@tagalong.command(help="Apply all tagalongs (to all files by default).")
+@click.option(
+    "-f", "--file", type=click.Path(path_type=Path, exists=True), multiple=True
+)
 @click.pass_obj
-def apply(vault: Connection):
-    # TODO: accept file and tagalong filters
+def apply(vault: Connection, file: tuple[Path, ...]):
+    # TODO: consider filtering by tag
     with vault as conn:
-        crud.tagalong.apply_all(conn)
+        file_ids = [crud.file.get_by_name(conn, str(path))[0] for path in file]
+
+        crud.tagalong.apply(conn, file_ids)

@@ -2,6 +2,10 @@ from pathlib import Path
 from sqlite3 import Connection
 
 
+def get_by_name(conn: Connection, file: Path):
+    return conn.execute("SELECT * FROM file WHERE path = ?", (file,)).fetchone()
+
+
 def get_or_create_file(conn: Connection, file: Path) -> int:
     q = """
             INSERT INTO file (path) VALUES (?)

@@ -1,4 +1,5 @@
 from sqlite3 import Connection
+from typing import Iterable
 
 
 def add(conn: Connection, source_id: int, target_id: int):
@@ -27,8 +28,8 @@ def get_all_names(conn: Connection):
     return result
 
 
-def apply_all(conn: Connection):
-    # TODO: might want to enable filtering
+def apply(conn: Connection, file_ids: Iterable[int] | None = None):
+    # TODO: consider allowing tag filtering
     q = """
         WITH RECURSIVE implied(tag_id, tagalong_id) AS (
             -- direct tagalongs
@@ -49,5 +50,10 @@ def apply_all(conn: Connection):
             implied.tagalong_id tag_id,
             file_tag.parent_id
         FROM file_tag
-        JOIN implied on implied.tag_id = file_tag.tag_id;"""
-    conn.execute(q)
+        JOIN implied on implied.tag_id = file_tag.tag_id"""
+
+    if file_ids:
+        phs = ",".join("?" for _ in file_ids)
+        q += f"\nWHERE file_tag.file_id IN ({phs})"
+
+    conn.execute(q, tuple(file_ids or []))
