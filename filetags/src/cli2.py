@@ -66,8 +66,16 @@ def attach_tree(conn, file_id, node, parent_id=None):
     multiple=True,
 )
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
+@click.option(
+    "--no-tagalongs", type=click.BOOL, is_flag=True, help="Do not apply tagalongs."
+)
 @click.pass_obj
-def add(vault: sqlite3.Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
+def add(
+    vault: sqlite3.Connection,
+    files: tuple[Path, ...],
+    tags: tuple[str, ...],
+    no_tagalongs: bool,
+):
     root_tags = flatten(parse(t).children for t in tags)
 
     with vault as conn:
@@ -75,6 +83,12 @@ def add(vault: sqlite3.Connection, files: tuple[Path, ...], tags: tuple[str, ...
             file_id = crud.file.get_or_create_file(conn, file)
             for root in root_tags:
                 attach_tree(conn, file_id, root)
+
+            if not no_tagalongs:
+                crud.tagalong.apply(
+                    conn,
+                    [file_id],
+                )
 
 
 @cli.command(help="Remove tags from files")
