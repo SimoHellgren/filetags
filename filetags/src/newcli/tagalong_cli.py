@@ -55,5 +55,9 @@ def ls(vault: Connection):
             click.echo(f"{tag} -> {tagalong}")
 
 
-def apply():
-    pass
+@tagalong.command(help="Apply all tagalongs.")
+@click.pass_obj
+def apply(vault: Connection):
+    # TODO: accept file and tagalong filters
+    with vault as conn:
+        crud.tagalong.apply_all(conn)

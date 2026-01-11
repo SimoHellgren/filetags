@@ -25,3 +25,29 @@ def get_all_names(conn: Connection):
         """).fetchall()
 
     return result
+
+
+def apply_all(conn: Connection):
+    # TODO: might want to enable filtering
+    q = """
+        WITH RECURSIVE implied(tag_id, tagalong_id) AS (
+            -- direct tagalongs
+            SELECT tag_id, tagalong_id
+            FROM tagalong
+            
+            UNION
+            
+            -- indirect tagalongs
+            SELECT implied.tag_id, t.tagalong_id
+            FROM tagalong t
+            JOIN implied ON t.tag_id = implied.tagalong_id
+        )
+
+        INSERT OR IGNORE INTO file_tag (file_id, tag_id, parent_id)
+        SELECT
+            file_tag.file_id,
+            implied.tagalong_id tag_id,
+            file_tag.parent_id
+        FROM file_tag
+        JOIN implied on implied.tag_id = file_tag.tag_id;"""
+    conn.execute(q)
