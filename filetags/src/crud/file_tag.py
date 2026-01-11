@@ -88,3 +88,7 @@ def attach_tag(
 
 def detach_tag(conn: Connection, file_tag_id: int) -> None:
     conn.execute("DELETE FROM file_tag WHERE id = ?", (file_tag_id,))
+
+
+def drop_for_file(conn: Connection, file_id: int):
+    conn.execute("DELETE FROM file_tag WHERE file_id = ?", (file_id,))

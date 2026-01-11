@@ -170,6 +170,32 @@ def set_(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
                 crud.file_tag.detach_tag(conn, file_tag_id)
 
 
+@cli.command(help="Drop files' tags")
+@click.option(
+    "-f",
+    "files",
+    required=True,
+    type=click.Path(path_type=Path, exists=True),
+    multiple=True,
+)
+@click.option("--retain-file", type=click.BOOL, is_flag=True)
+@click.pass_obj
+def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
+    with vault as conn:
+        for path in files:
+            file_record = crud.file.get_by_name(conn, str(path))
+
+            if not file_record:
+                continue
+
+            file_id = file_record[0]
+
+            crud.file_tag.drop_for_file(conn, file_id)
+
+            if not retain_file:
+                crud.file.delete(conn, file_id)
+
+
 @cli.command(help="List files (with optional filters).")
 @click.option("-l", "long", type=click.BOOL, is_flag=True, help="Long listing format.")
 @click.pass_obj

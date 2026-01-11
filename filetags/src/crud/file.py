@@ -19,3 +19,7 @@ def get_or_create_file(conn: Connection, file: Path) -> int:
 
 def get_all(conn: Connection):
     return conn.execute("SELECT * FROM file ORDER BY path").fetchall()
+
+
+def delete(conn: Connection, file_id: int):
+    conn.execute("DELETE FROM file WHERE id = ?", (file_id,))
