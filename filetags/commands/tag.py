@@ -3,8 +3,8 @@ from typing import Optional
 
 import click
 
-from filetags.src import crud
-from filetags.src.utils import compile_pattern
+from filetags import crud
+from filetags.utils import compile_pattern
 
 
 @click.group(help="Tag management")

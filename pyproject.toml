@@ -15,8 +15,7 @@ coverage = "^7.5.3"
 mypy = "^1.10.0"
 
 [tool.poetry.scripts]
-ftag = "filetags.src.cli:main"
-dev = "filetags.src.cli2:main"
+ftag = "filetags.cli:main"
 
 [build-system]
 requires = ["poetry-core"]

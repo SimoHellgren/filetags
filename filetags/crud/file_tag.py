@@ -1,7 +1,7 @@
 from sqlite3 import Connection
 
-from filetags.src.models.node import Node
-from filetags.src.utils import flatten
+from filetags.models.node import Node
+from filetags.utils import flatten
 
 
 def resolve_path(conn: Connection, file_id: int, path: tuple[Node, ...]) -> int:

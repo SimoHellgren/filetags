@@ -3,7 +3,7 @@ from sqlite3 import Connection
 
 import click
 
-from filetags.src import crud
+from filetags import crud
 
 
 @click.group(help="Tagalong management")

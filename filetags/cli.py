@@ -3,13 +3,13 @@ from sqlite3 import Connection
 
 import click
 
-from filetags.src import crud
-from filetags.src.commands import tag, tagalong
-from filetags.src.db.connect import get_vault
-from filetags.src.db.init import init_db
-from filetags.src.models.node import Node
-from filetags.src.parser import parse
-from filetags.src.utils import compile_pattern, flatten
+from filetags import crud
+from filetags.commands import tag, tagalong
+from filetags.db.connect import get_vault
+from filetags.db.init import init_db
+from filetags.models.node import Node
+from filetags.parser import parse
+from filetags.utils import compile_pattern, flatten
 
 VAULT_PATH = Path("vault.db")
 

@@ -1,5 +1,6 @@
-from typing import Self, TypeVar, Generic, Optional, Generator, Callable, Iterator
-from filetags.src.utils import tail, find
+from typing import Callable, Generator, Generic, Iterator, Optional, Self, TypeVar
+
+from filetags.utils import find, tail
 
 T = TypeVar("T")
 
@@ -40,7 +41,7 @@ class Node(Generic[T]):
     def paths_down(self) -> Generator[tuple[Self, ...], None, None]:
         """Yield all paths to leaves from self"""
         if not self.children:
-            yield self,
+            yield (self,)
 
         else:
             for child in self.children:
@@ -218,9 +219,9 @@ class Node(Generic[T]):
 
             else:
                 self.add_child(child)
-    
+
     def __eq__(self, other: Self) -> bool:
         return self.value == other.value
-    
+
     def __hash__(self):
         return hash(self.value)
