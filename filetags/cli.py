@@ -89,17 +89,10 @@ def add(
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
 @click.pass_obj
 def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
-    root_tags = flatten(parse(t).children for t in tags)
+    root_tags = list(flatten(parse(t).children for t in tags))
 
     with vault as conn:
-        for file in files:
-            file_id = crud.file.get_or_create(conn, file)
-
-            for root in root_tags:
-                for path in root.paths_down():
-                    file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
-                    if file_tag_id:
-                        crud.file_tag.detach(conn, file_tag_id)
+        service.remove_tags_from_files(conn, files, root_tags)
 
 
 @cli.command(help="Show tags of files")
@@ -170,7 +163,7 @@ def set_(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
     with vault as conn:
         for path in files:
-            file_record = crud.file.get_by_name(conn, str(path))
+            file_record = crud.file.get_by_path(conn, str(path))
 
             if not file_record:
                 continue

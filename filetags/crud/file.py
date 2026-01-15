@@ -2,8 +2,15 @@ from pathlib import Path
 from sqlite3 import Connection, Row
 
 
-def get_by_name(conn: Connection, file: Path):
-    return conn.execute("SELECT * FROM file WHERE path = ?", (file,)).fetchone()
+def get_by_path(conn: Connection, path: Path) -> Row:
+    return conn.execute("SELECT * FROM file WHERE path = ?", (path,)).fetchone()
+
+
+def get_many_by_path(conn: Connection, paths: list[Path]) -> list[Row]:
+    phs = ",".join("?" for _ in paths)
+    return conn.execute(
+        f"SELECT * FROM file WHERE path IN ({phs})", [*map(str, paths)]
+    ).fetchall()
 
 
 def get_many(conn: Connection, ids: list[int]) -> list:
@@ -32,7 +39,7 @@ def get_or_create_many(conn: Connection, paths: list[Path]) -> list[Row]:
             RETURNING id
         """
 
-    return conn.execute(q, [str(path) for path in paths]).fetchall()
+    return conn.execute(q, [*map(str, paths)]).fetchall()
 
 
 def get_all(conn: Connection):

@@ -28,3 +28,15 @@ def add_tags_to_files(
             conn,
             file_ids,
         )
+
+
+def remove_tags_from_files(conn: Connection, files: list[Path], tags: list[Node]):
+    # non-existing files are skipped here due to how get_many_by_path works.
+    file_ids = [x["id"] for x in crud.file.get_many_by_path(conn, files)]
+
+    for file_id in file_ids:
+        for tag in tags:
+            for path in tag.paths_down():
+                file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
+                if file_tag_id:
+                    crud.file_tag.detach(conn, file_tag_id)
