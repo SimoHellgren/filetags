@@ -3,7 +3,7 @@ from sqlite3 import Connection
 
 import click
 
-from filetags import crud, service
+from filetags import service
 from filetags.commands import tag, tagalong
 from filetags.db.connect import get_vault
 from filetags.db.init import init_db
@@ -100,17 +100,14 @@ def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 @click.pass_obj
 def show(vault: Connection, files: tuple[Path, ...]):
     with vault as conn:
-        for file in files:
-            file_id = crud.file.get_or_create(conn, file)
-            tags = crud.file_tag.get_by_file_id(conn, file_id)
+        files_with_tags = service.get_files_with_tags(conn, files)
 
-            roots = crud.file_tag.build_tree(tags)
-
-            click.echo(
-                click.style(file, fg="green")
-                + "\t"
-                + click.style(",".join(str(root) for root in roots), fg="cyan")
-            )
+    for path, roots in files_with_tags.items():
+        click.echo(
+            click.style(path, fg="green")
+            + "\t"
+            + click.style(",".join(str(root) for root in roots), fg="cyan")
+        )
 
 
 @cli.command(help="Replace tags on files", name="set")
@@ -154,11 +151,13 @@ def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
 
 
 @cli.command(help="List files (with optional filters).")
-@click.option("-l", "long", type=click.BOOL, is_flag=True, help="Long listing format.")
-@click.option("-s", "select", multiple=True)
-@click.option("-e", "exclude", multiple=True)
-@click.option("-p", "--pattern", help="Filter output by regex pattern")
-@click.option("-i", "--ignore-case", is_flag=True)
+@click.option(
+    "-l", "--long", type=click.BOOL, is_flag=True, help="Long listing format."
+)
+@click.option("-s", "--select", multiple=True)
+@click.option("-e", "--exclude", multiple=True)
+@click.option("-p", "--pattern", help="Filter output by regex pattern.", default=r".*")
+@click.option("-i", "--ignore-case", is_flag=True, help="Ignore regex case.")
 @click.option(
     "-v",
     "--invert-match",
@@ -181,30 +180,23 @@ def ls(
 
     regex = compile_pattern(pattern, ignore_case)
 
+    # TODO: some double-fetching here, still, but better than before
+    # TODO: if not --long, could no need to fetch tags.
     with vault as conn:
         files = service.search_files(conn, select_nodes, exclude_nodes)
+        filtered = [f for f in files if bool(regex.search(f["path"])) ^ invert_match]
 
-        for file_id, path, *_ in files:
-            matched = bool(regex.search(path)) if regex else True
+        files_with_tags = service.get_files_with_tags(
+            conn, [f["path"] for f in filtered]
+        )
 
-            if invert_match:
-                matched = not matched
+    for path, roots in files_with_tags.items():
+        msg = click.style(path, fg="green")
 
-            if not matched:
-                continue
+        if long:
+            msg += "\t" + click.style(",".join(str(root) for root in roots), fg="cyan")
 
-            tags = crud.file_tag.get_by_file_id(conn, file_id)
-
-            roots = crud.file_tag.build_tree(tags)
-
-            msg = click.style(path, fg="green")
-
-            if long:
-                msg += "\t" + click.style(
-                    ",".join(str(root) for root in roots), fg="cyan"
-                )
-
-            click.echo(msg)
+        click.echo(msg)
 
 
 def main():

@@ -1,4 +1,4 @@
-from sqlite3 import Connection
+from sqlite3 import Connection, Row
 
 from filetags.models.node import Node
 from filetags.utils import flatten
@@ -95,7 +95,7 @@ def build_tree(file_tags: list) -> list[Node]:
     return roots
 
 
-def get_by_file_id(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
+def get_by_file_id(conn: Connection, file_id: int) -> list[Row]:
     q = """
         SELECT
             file_tag.id,
@@ -107,8 +107,7 @@ def get_by_file_id(conn: Connection, file_id: int) -> list[tuple[int, str, int]]
         WHERE file_tag.file_id = ?
         ORDER BY parent_id, name
     """
-    result = conn.execute(q, (file_id,)).fetchall()
-    return result
+    return conn.execute(q, (file_id,)).fetchall()
 
 
 def replace(conn: Connection, old_id: int, new_id: int):

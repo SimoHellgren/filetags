@@ -77,6 +77,16 @@ def drop_file_tags(conn: Connection, files: list[Path], retain_file: bool = Fals
             crud.file.delete(conn, file_id)
 
 
+def get_files_with_tags(conn: Connection, files: list[Path]) -> dict[Path, list[Node]]:
+    # TODO: turn into a proper batch get
+    file_records = crud.file.get_many_by_path(conn, files)
+    file_names = [f["path"] for f in file_records]
+    tags = [crud.file_tag.get_by_file_id(conn, file["id"]) for file in file_records]
+    roots = [crud.file_tag.build_tree(tag) for tag in tags]
+
+    return dict(zip(file_names, roots))
+
+
 def search_files(conn: Connection, select_tags: list[Node], exclude_tags: list[Node]):
     include_ids = set()
     exclude_ids = set()
