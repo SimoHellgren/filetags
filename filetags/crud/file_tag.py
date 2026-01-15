@@ -31,7 +31,7 @@ def resolve_path(conn: Connection, file_id: int, path: tuple[Node, ...]) -> int:
     return parent_id
 
 
-def find_all(conn: Connection, path: tuple[Node, ...]) -> list:
+def find_all(conn: Connection, path: tuple[Node, ...]) -> list[Row]:
     values = ",".join("(?,?)" for _ in path)
 
     q = f"""

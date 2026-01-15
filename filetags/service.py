@@ -1,5 +1,5 @@
 from pathlib import Path
-from sqlite3 import Connection
+from sqlite3 import Connection, Row
 
 from filetags import crud
 from filetags.models.node import Node
@@ -87,30 +87,33 @@ def get_files_with_tags(conn: Connection, files: list[Path]) -> dict[Path, list[
     return dict(zip(file_names, roots))
 
 
+def _find_files_matching_all_paths(conn: Connection, node: Node) -> set[int]:
+    matches = []
+    for _, *p in node.paths_down():
+        file_ids = {x["file_id"] for x in crud.file_tag.find_all(conn, p)}
+        matches.append(file_ids)
+
+    return set.intersection(*matches)
+
+
 def search_files(conn: Connection, select_tags: list[Node], exclude_tags: list[Node]):
-    include_ids = set()
-    exclude_ids = set()
+    include_ids = set.union(
+        set(), *(_find_files_matching_all_paths(conn, n) for n in select_tags)
+    )
+    exclude_ids = set.union(
+        set(), *(_find_files_matching_all_paths(conn, n) for n in exclude_tags)
+    )
 
-    # TODO: refactor
-    for n in select_tags:
-        matches = []
-        for _, *p in n.paths_down():
-            matches.append({x[0] for x in crud.file_tag.find_all(conn, p)})
-
-        include_ids |= set.intersection(*matches)
-
-    for n in exclude_tags:
-        matches = []
-        for _, *p in n.paths_down():
-            matches.append({x[0] for x in crud.file_tag.find_all(conn, p)})
-
-        exclude_ids |= set.intersection(*matches)
+    # TODO: this is a dumb way to handle the case where the user provides only exclude tags
+    if not include_ids:
+        include_ids = set(x["id"] for x in crud.file.get_all(conn))
 
     ids = tuple(include_ids - exclude_ids)
 
-    if ids:
-        files = crud.file.get_many(conn, ids)
-    else:
-        files = crud.file.get_all(conn)
+    files = crud.file.get_many(conn, ids)
 
     return files
+
+
+def get_all_files(conn: Connection) -> list[Row]:
+    return crud.file.get_all(conn)
