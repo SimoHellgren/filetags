@@ -3,7 +3,7 @@ from sqlite3 import Connection
 
 import click
 
-from filetags import crud
+from filetags import crud, service
 from filetags.commands import tag, tagalong
 from filetags.db.connect import get_vault
 from filetags.db.init import init_db
@@ -50,13 +50,6 @@ def init(filepath: Path):
         click.echo(f"{filepath} created.")
 
 
-def attach_tree(conn, file_id, node, parent_id=None):
-    tag_id = crud.tag.get_or_create(conn, node.value)
-    filetag_id = crud.file_tag.attach(conn, file_id, tag_id, parent_id)
-    for child in node.children:
-        attach_tree(conn, file_id, child, filetag_id)
-
-
 @cli.command(help="Add tags to files")
 @click.option(
     "-f",
@@ -67,28 +60,22 @@ def attach_tree(conn, file_id, node, parent_id=None):
 )
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
 @click.option(
-    "--no-tagalongs", type=click.BOOL, is_flag=True, help="Do not apply tagalongs."
+    "--tagalongs/--no-tagalongs",
+    type=click.BOOL,
+    default=True,
+    help="Apply / don't apply tagalongs.",
 )
 @click.pass_obj
 def add(
     vault: Connection,
     files: tuple[Path, ...],
     tags: tuple[str, ...],
-    no_tagalongs: bool,
+    tagalongs: bool,
 ):
-    root_tags = flatten(parse(t).children for t in tags)
+    root_tags = list(flatten(parse(t).children for t in tags))
 
     with vault as conn:
-        for file in files:
-            file_id = crud.file.get_or_create(conn, file)
-            for root in root_tags:
-                attach_tree(conn, file_id, root)
-
-            if not no_tagalongs:
-                crud.tagalong.apply(
-                    conn,
-                    [file_id],
-                )
+        service.add_tags_to_files(conn, files, root_tags, tagalongs)
 
 
 @cli.command(help="Remove tags from files")
@@ -155,7 +142,7 @@ def set_(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 
             # attach new tags
             for node in root.children:
-                attach_tree(conn, file_id, node)
+                service.attach_tree(conn, file_id, node)
 
             # remove other tags
             tags = crud.file_tag.get_by_file_id(conn, file_id)

@@ -1,5 +1,5 @@
 from pathlib import Path
-from sqlite3 import Connection
+from sqlite3 import Connection, Row
 
 
 def get_by_name(conn: Connection, file: Path):
@@ -22,6 +22,17 @@ def get_or_create(conn: Connection, file: Path) -> int:
     (file_id,) = conn.execute(q, (str(file),)).fetchone()
 
     return file_id
+
+
+def get_or_create_many(conn: Connection, paths: list[Path]) -> list[Row]:
+    vals = ",".join("(?)" for _ in paths)
+    q = f"""
+            INSERT INTO file (path) VALUES {vals}
+            ON CONFLICT(path) DO UPDATE SET path=path --no-op update
+            RETURNING id
+        """
+
+    return conn.execute(q, [str(path) for path in paths]).fetchall()
 
 
 def get_all(conn: Connection):
