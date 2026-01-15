@@ -68,6 +68,15 @@ def set_tags_on_files(
     add_tags_to_files(conn, files, tag.children, apply_tagalongs)
 
 
+def drop_file_tags(conn: Connection, files: list[Path], retain_file: bool = False):
+    file_ids = [x["id"] for x in crud.file.get_many_by_path(conn, files)]
+    for file_id in file_ids:
+        crud.file_tag.drop_for_file(conn, file_id)
+
+        if not retain_file:
+            crud.file.delete(conn, file_id)
+
+
 def search_files(conn: Connection, select_tags: list[Node], exclude_tags: list[Node]):
     include_ids = set()
     exclude_ids = set()

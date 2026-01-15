@@ -150,18 +150,7 @@ def set_(
 @click.pass_obj
 def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
     with vault as conn:
-        for path in files:
-            file_record = crud.file.get_by_path(conn, str(path))
-
-            if not file_record:
-                continue
-
-            file_id = file_record[0]
-
-            crud.file_tag.drop_for_file(conn, file_id)
-
-            if not retain_file:
-                crud.file.delete(conn, file_id)
+        service.drop_file_tags(conn, files, retain_file)
 
 
 @cli.command(help="List files (with optional filters).")
