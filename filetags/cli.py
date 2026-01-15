@@ -51,8 +51,8 @@ def init(filepath: Path):
 
 
 def attach_tree(conn, file_id, node, parent_id=None):
-    tag_id = crud.tag.get_or_create_tag(conn, node.value)
-    filetag_id = crud.file_tag.attach_tag(conn, file_id, tag_id, parent_id)
+    tag_id = crud.tag.get_or_create(conn, node.value)
+    filetag_id = crud.file_tag.attach(conn, file_id, tag_id, parent_id)
     for child in node.children:
         attach_tree(conn, file_id, child, filetag_id)
 
@@ -80,7 +80,7 @@ def add(
 
     with vault as conn:
         for file in files:
-            file_id = crud.file.get_or_create_file(conn, file)
+            file_id = crud.file.get_or_create(conn, file)
             for root in root_tags:
                 attach_tree(conn, file_id, root)
 
@@ -106,13 +106,13 @@ def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 
     with vault as conn:
         for file in files:
-            file_id = crud.file.get_or_create_file(conn, file)
+            file_id = crud.file.get_or_create(conn, file)
 
             for root in root_tags:
                 for path in root.paths_down():
                     file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
                     if file_tag_id:
-                        crud.file_tag.detach_tag(conn, file_tag_id)
+                        crud.file_tag.detach(conn, file_tag_id)
 
 
 @cli.command(help="Show tags of files")
@@ -121,8 +121,8 @@ def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 def show(vault: Connection, files: tuple[Path, ...]):
     with vault as conn:
         for file in files:
-            file_id = crud.file.get_or_create_file(conn, file)
-            tags = crud.file_tag.get_file_tags(conn, file_id)
+            file_id = crud.file.get_or_create(conn, file)
+            tags = crud.file_tag.get_by_file_id(conn, file_id)
 
             roots = crud.file_tag.build_tree(tags)
 
@@ -151,14 +151,14 @@ def set_(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 
     with vault as conn:
         for file in files:
-            file_id = crud.file.get_or_create_file(conn, file)
+            file_id = crud.file.get_or_create(conn, file)
 
             # attach new tags
             for node in root.children:
                 attach_tree(conn, file_id, node)
 
             # remove other tags
-            tags = crud.file_tag.get_file_tags(conn, file_id)
+            tags = crud.file_tag.get_by_file_id(conn, file_id)
 
             roots = crud.file_tag.build_tree(tags)
             db_nodes = flatten(n.preorder() for n in roots)
@@ -167,7 +167,7 @@ def set_(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
             paths_to_delete = existing_paths - desired_paths
             for path in paths_to_delete:
                 file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
-                crud.file_tag.detach_tag(conn, file_tag_id)
+                crud.file_tag.detach(conn, file_tag_id)
 
 
 @cli.command(help="Drop files' tags")
@@ -258,7 +258,7 @@ def ls(
             if not matched:
                 continue
 
-            tags = crud.file_tag.get_file_tags(conn, file_id)
+            tags = crud.file_tag.get_by_file_id(conn, file_id)
 
             roots = crud.file_tag.build_tree(tags)
 

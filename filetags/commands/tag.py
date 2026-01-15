@@ -19,7 +19,7 @@ def tag(vault: Connection):
 @click.pass_obj
 def new_tag(vault: Connection, name: str, category: Optional[str]):
     with vault as conn:
-        crud.tag.create_tag(conn, name, category)
+        crud.tag.create(conn, name, category)
 
 
 @tag.command(help="Edit tag", name="edit")
@@ -48,7 +48,7 @@ def edit_tag(vault: Connection, tag: list[str], clear_category: bool, **kwargs):
         data["category"] = None
 
     with vault as conn:
-        crud.tag.update_tags(
+        crud.tag.update(
             conn,
             tag,
             data,
@@ -67,13 +67,13 @@ def edit_tag(vault: Connection, tag: list[str], clear_category: bool, **kwargs):
 @click.pass_obj
 def replace_tag(vault: Connection, old: tuple[str, ...], new: str, remove: bool):
     with vault as conn:
-        new_id = crud.tag.get_tag_by_name(conn, new)[0]
+        new_id = crud.tag.get_by_name(conn, new)[0]
         for tag in old:
-            old_id = crud.tag.get_tag_by_name(conn, tag)[0]
-            crud.file_tag.replace_file_tag(conn, old_id, new_id)
+            old_id = crud.tag.get_by_name(conn, tag)[0]
+            crud.file_tag.replace(conn, old_id, new_id)
 
             if remove:
-                crud.tag.delete_tag(conn, old_id)
+                crud.tag.delete(conn, old_id)
 
 
 @tag.command(help="Removes all instances of a tag.", name="delete")
@@ -87,8 +87,8 @@ def remove_tag(vault: Connection, tags: tuple[str, ...]):
 
     with vault as conn:
         for tag in tags:
-            tag_id = crud.tag.get_tag_by_name(conn, tag)[0]
-            crud.tag.delete_tag(conn, tag_id)
+            tag_id = crud.tag.get_by_name(conn, tag)[0]
+            crud.tag.delete(conn, tag_id)
 
 
 @tag.command(help="List tags", name="ls")
@@ -105,7 +105,7 @@ def list_tags(
     invert_match: bool,
 ):
     with vault as conn:
-        tags = crud.tag.get_all_tags(conn)
+        tags = crud.tag.get_all(conn)
 
     regex = compile_pattern(pattern, ignore_case)
 

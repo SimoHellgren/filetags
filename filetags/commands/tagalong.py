@@ -19,9 +19,9 @@ def tagalong(vault: Connection):
 def add(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
     with vault as conn:
         for source in tag:
-            source_id = crud.tag.get_or_create_tag(conn, source)
+            source_id = crud.tag.get_or_create(conn, source)
             for target in tagalong:
-                target_id = crud.tag.get_or_create_tag(conn, target)
+                target_id = crud.tag.get_or_create(conn, target)
 
                 crud.tagalong.add(conn, source_id, target_id)
 
@@ -33,13 +33,13 @@ def add(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
 def remove(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
     with vault as conn:
         for source in tag:
-            source_record = crud.tag.get_tag_by_name(conn, source)
+            source_record = crud.tag.get_by_name(conn, source)
 
             if not source_record:
                 continue
 
             for target in tagalong:
-                target_record = crud.tag.get_tag_by_name(conn, target)
+                target_record = crud.tag.get_by_name(conn, target)
 
                 if not target_record:
                     continue

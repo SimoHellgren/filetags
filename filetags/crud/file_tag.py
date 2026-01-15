@@ -95,7 +95,7 @@ def build_tree(file_tags: list) -> list[Node]:
     return roots
 
 
-def get_file_tags(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
+def get_by_file_id(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
     q = """
         SELECT
             file_tag.id,
@@ -111,11 +111,11 @@ def get_file_tags(conn: Connection, file_id: int) -> list[tuple[int, str, int]]:
     return result
 
 
-def replace_file_tag(conn: Connection, old_id: int, new_id: int):
+def replace(conn: Connection, old_id: int, new_id: int):
     conn.execute("UPDATE file_tag SET tag_id = ? where tag_id = ?", (new_id, old_id))
 
 
-def attach_tag(
+def attach(
     conn: Connection, file_id: int, tag_id: int, parent_id: int | None = None
 ) -> int:
     (file_tag_id,) = conn.execute(
@@ -130,7 +130,7 @@ def attach_tag(
     return file_tag_id
 
 
-def detach_tag(conn: Connection, file_tag_id: int) -> None:
+def detach(conn: Connection, file_tag_id: int) -> None:
     conn.execute("DELETE FROM file_tag WHERE id = ?", (file_tag_id,))
 
 

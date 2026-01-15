@@ -13,7 +13,7 @@ def get_many(conn: Connection, ids: list[int]) -> list:
     ).fetchall()
 
 
-def get_or_create_file(conn: Connection, file: Path) -> int:
+def get_or_create(conn: Connection, file: Path) -> int:
     q = """
             INSERT INTO file (path) VALUES (?)
             ON CONFLICT(path) DO UPDATE SET path=path --no-op update

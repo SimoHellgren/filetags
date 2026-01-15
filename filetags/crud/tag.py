@@ -2,7 +2,7 @@ from sqlite3 import Connection
 from typing import Optional
 
 
-def create_tag(conn: Connection, name: str, category: Optional[str] = None):
+def create(conn: Connection, name: str, category: Optional[str] = None):
     result = conn.execute(
         """INSERT INTO tag(name, category) VALUES (?, ?) RETURNING id,name,category""",
         (name, category),
@@ -11,18 +11,18 @@ def create_tag(conn: Connection, name: str, category: Optional[str] = None):
     return result
 
 
-def get_tag_by_name(conn: Connection, name: str):
+def get_by_name(conn: Connection, name: str):
     result = conn.execute(
         "SELECT id, name, category FROM tag WHERE name = ?", (name,)
     ).fetchone()
     return result
 
 
-def get_all_tags(conn: Connection):
+def get_all(conn: Connection):
     return conn.execute("SELECT * FROM tag").fetchall()
 
 
-def get_or_create_tag(conn: Connection, tag: str) -> int:
+def get_or_create(conn: Connection, tag: str) -> int:
     q = """
         INSERT INTO tag(name) VALUES (?)
         ON CONFLICT (name) DO UPDATE SET name=name --no-op
@@ -33,7 +33,7 @@ def get_or_create_tag(conn: Connection, tag: str) -> int:
     return tag_id
 
 
-def update_tags(conn: Connection, names: list[str], data: dict):
+def update(conn: Connection, names: list[str], data: dict):
     ALLOWED_COLS = {"name", "category"}
 
     if forbidden := (data.keys() - ALLOWED_COLS):
@@ -51,5 +51,5 @@ def update_tags(conn: Connection, names: list[str], data: dict):
     conn.execute(q, vals)
 
 
-def delete_tag(conn: Connection, tag_id: int):
+def delete(conn: Connection, tag_id: int):
     conn.execute("DELETE FROM tag WHERE id = ?", (tag_id,))
