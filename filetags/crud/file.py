@@ -16,27 +16,23 @@ class FileCRUD(BaseCRUD):
     def get_many_by_path(self, conn: Connection, paths: Sequence[Path]) -> list[Row]:
         return self.get_many_by_unique_col(conn, [*map(str, paths)])
 
+    def get_or_create(self, conn: Connection, path: Path) -> Row:
+        q = """
+                INSERT INTO file (path) VALUES (?)
+                ON CONFLICT(path) DO UPDATE SET path=path --no-op update
+                RETURNING id
+            """
+        return conn.execute(q, (str(path),)).fetchone()
+
+    def get_or_create_many(conn: Connection, paths: list[Path]) -> list[Row]:
+        vals = ",".join("(?)" for _ in paths)
+        q = f"""
+                INSERT INTO file (path) VALUES {vals}
+                ON CONFLICT(path) DO UPDATE SET path=path --no-op update
+                RETURNING id
+            """
+
+        return conn.execute(q, [*map(str, paths)]).fetchall()
+
 
 file = FileCRUD()
-
-
-def get_or_create(conn: Connection, file: Path) -> int:
-    q = """
-            INSERT INTO file (path) VALUES (?)
-            ON CONFLICT(path) DO UPDATE SET path=path --no-op update
-            RETURNING id
-        """
-    (file_id,) = conn.execute(q, (str(file),)).fetchone()
-
-    return file_id
-
-
-def get_or_create_many(conn: Connection, paths: list[Path]) -> list[Row]:
-    vals = ",".join("(?)" for _ in paths)
-    q = f"""
-            INSERT INTO file (path) VALUES {vals}
-            ON CONFLICT(path) DO UPDATE SET path=path --no-op update
-            RETURNING id
-        """
-
-    return conn.execute(q, [*map(str, paths)]).fetchall()
