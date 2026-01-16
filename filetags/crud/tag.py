@@ -1,4 +1,4 @@
-from sqlite3 import Connection
+from sqlite3 import Connection, Row
 from typing import Optional
 
 
@@ -18,6 +18,12 @@ def get_by_name(conn: Connection, name: str):
     return result
 
 
+def get_many_by_name(conn: Connection, names: list[str]) -> list[Row]:
+    phs = ",".join("?" for _ in names)
+    q = f"SELECT * FROM tag WHERE name IN ({phs})"
+    return conn.execute(q, names).fetchall()
+
+
 def get_all(conn: Connection):
     return conn.execute("SELECT * FROM tag").fetchall()
 
@@ -31,6 +37,18 @@ def get_or_create(conn: Connection, tag: str) -> int:
     (tag_id,) = conn.execute(q, (tag,)).fetchone()
 
     return tag_id
+
+
+def get_or_create_many(conn: Connection, tags: list[str]) -> list[Row]:
+    vals = ",".join("(?)" for _ in tags)
+
+    q = f"""
+        INSERT INTO tag(name) VALUES {vals}
+        ON CONFLICT (name) DO UPDATE SET name=name --no-op
+        RETURNING id
+    """
+
+    return conn.execute(q, tags).fetchall()
 
 
 def update(conn: Connection, names: list[str], data: dict):

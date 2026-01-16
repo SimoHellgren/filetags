@@ -1,3 +1,4 @@
+from itertools import product
 from pathlib import Path
 from sqlite3 import Connection
 
@@ -18,12 +19,11 @@ def tagalong(vault: Connection):
 @click.pass_obj
 def add(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
     with vault as conn:
-        for source in tag:
-            source_id = crud.tag.get_or_create(conn, source)
-            for target in tagalong:
-                target_id = crud.tag.get_or_create(conn, target)
+        sources = crud.tag.get_or_create_many(conn, tag)
+        targets = crud.tag.get_or_create_many(conn, tagalong)
 
-                crud.tagalong.add(conn, source_id, target_id)
+        for source, target in product(sources, targets):
+            crud.tagalong.add(conn, source["id"], target["id"])
 
 
 @tagalong.command(help="Remove tagalongs.")
@@ -32,19 +32,11 @@ def add(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
 @click.pass_obj
 def remove(vault: Connection, tag: tuple[str, ...], tagalong: tuple[str, ...]):
     with vault as conn:
-        for source in tag:
-            source_record = crud.tag.get_by_name(conn, source)
+        sources = crud.tag.get_many_by_name(conn, tag)
+        targets = crud.tag.get_many_by_name(conn, tagalong)
 
-            if not source_record:
-                continue
-
-            for target in tagalong:
-                target_record = crud.tag.get_by_name(conn, target)
-
-                if not target_record:
-                    continue
-
-                crud.tagalong.remove(conn, source_record[0], target_record[0])
+        for source, target in product(sources, targets):
+            crud.tagalong.remove(conn, source["id"], target["id"])
 
 
 @tagalong.command(help="Show all tagalongs.")
