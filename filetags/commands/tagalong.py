@@ -56,6 +56,7 @@ def ls(vault: Connection):
 def apply(vault: Connection, file: tuple[Path, ...]):
     # TODO: consider filtering by tag
     with vault as conn:
-        file_ids = [crud.file.get_by_path(conn, str(path))[0] for path in file]
+        files = crud.file.get_many_by_path(conn, file)
+        file_ids = [f["id"] for f in files]
 
         crud.tagalong.apply(conn, file_ids)
