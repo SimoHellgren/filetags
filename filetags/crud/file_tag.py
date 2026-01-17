@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from sqlite3 import Connection, Row
 
+from filetags.crud.base import _placeholders
 from filetags.models.node import Node
 from filetags.utils import flatten
 
@@ -29,13 +31,13 @@ def resolve_path(conn: Connection, file_id: int, path: tuple[Node, ...]) -> int:
         if not row:
             return None
 
-        parent_id = row[0]
+        parent_id = row["id"]
 
     return parent_id
 
 
-def find_all(conn: Connection, path: tuple[Node, ...]) -> list[Row]:
-    values = ",".join("(?,?)" for _ in path)
+def find_all(conn: Connection, path: Sequence[Node]) -> list[Row]:
+    values = _placeholders(len(path), "(?,?)")
 
     q = f"""
         WITH path(depth, tag_name) AS (
@@ -91,7 +93,7 @@ def get_by_file_id(conn: Connection, file_id: int) -> list[Row]:
     return conn.execute(q, (file_id,)).fetchall()
 
 
-def replace(conn: Connection, old_id: int, new_id: int):
+def replace(conn: Connection, old_id: int, new_id: int) -> None:
     conn.execute("UPDATE file_tag SET tag_id = ? where tag_id = ?", (new_id, old_id))
 
 
@@ -114,5 +116,5 @@ def detach(conn: Connection, file_tag_id: int) -> None:
     conn.execute("DELETE FROM file_tag WHERE id = ?", (file_tag_id,))
 
 
-def drop_for_file(conn: Connection, file_id: int):
+def drop_for_file(conn: Connection, file_id: int) -> None:
     conn.execute("DELETE FROM file_tag WHERE file_id = ?", (file_id,))
