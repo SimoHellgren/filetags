@@ -26,10 +26,10 @@ class FileCRUD(BaseCRUD):
 
     def get_by_path(self, conn: Connection, path: Path) -> Row:
         # TODO: might want to generalize the type conversion here into BaseCRUD
-        return self.get_by_unique_col(conn, str(path))
+        return self.get_by_unique_col(conn, str(path.resolve()))
 
     def get_many_by_path(self, conn: Connection, paths: Sequence[Path]) -> list[Row]:
-        return self.get_many_by_unique_col(conn, [*map(str, paths)])
+        return self.get_many_by_unique_col(conn, [str(p.resolve()) for p in paths])
 
     def get_or_create(self, conn: Connection, path: Path) -> Row:
         q = """
@@ -39,7 +39,7 @@ class FileCRUD(BaseCRUD):
             """
 
         inode, device = _get_inode_and_device(path)
-        return conn.execute(q, (str(path), inode, device)).fetchone()
+        return conn.execute(q, (str(path.resolve()), inode, device)).fetchone()
 
     def get_or_create_many(self, conn: Connection, paths: list[Path]) -> list[Row]:
         vals = _placeholders(len(paths), "(?,?,?)")
@@ -48,7 +48,7 @@ class FileCRUD(BaseCRUD):
                 ON CONFLICT(path) DO UPDATE SET path=path --no-op update
                 RETURNING id
             """
-        params = [(str(p), *_get_inode_and_device(p)) for p in paths]
+        params = [(str(p.resolve()), *_get_inode_and_device(p)) for p in paths]
 
         return conn.execute(q, tuple(flatten(params))).fetchall()
 

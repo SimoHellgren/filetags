@@ -192,7 +192,7 @@ def ls(
         filtered = [f for f in files if bool(regex.search(f["path"])) ^ invert_match]
 
         files_with_tags = service.get_files_with_tags(
-            conn, [f["path"] for f in filtered]
+            conn, [Path(f["path"]) for f in filtered]
         )
 
     for path, roots in files_with_tags.items():

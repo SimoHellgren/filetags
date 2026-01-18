@@ -225,10 +225,55 @@ class TestFileCRUD:
         # This tests the current behavior - you may want to change this
         crud.file.get_or_create(conn, Path("nonexistent.txt"))
 
-        fetched = crud.file.get_by_path(conn, Path("nonexistent.txt"))
+        fetched = crud.file.get_by_path(conn, Path("nonexistent.txt").resolve())
 
         assert fetched["inode"] is None
         assert fetched["device"] is None
+
+    def test_get_or_create_stores_absolute_path(self, conn, tmp_path):
+        """Paths should be stored as absolute (resolved) paths."""
+        real_file = tmp_path / "file.txt"
+        real_file.write_text("content")
+
+        # Use a relative-style path (though tmp_path is absolute, we test the resolve behavior)
+        crud.file.get_or_create(conn, real_file)
+
+        fetched = crud.file.get_by_path(conn, real_file)
+
+        assert fetched["path"] == str(real_file.resolve())
+
+    def test_get_or_create_resolves_relative_path(self, conn, tmp_path, monkeypatch):
+        """Relative paths should be resolved to absolute before storing."""
+        # Change to tmp_path so relative paths resolve there
+        monkeypatch.chdir(tmp_path)
+
+        real_file = tmp_path / "relative_test.txt"
+        real_file.write_text("content")
+
+        # Pass a relative path
+        crud.file.get_or_create(conn, Path("relative_test.txt"))
+
+        # Should be stored as absolute
+        fetched = crud.file.get_by_path(conn, Path("relative_test.txt").resolve())
+
+        assert fetched is not None
+        assert fetched["path"] == str(real_file.resolve())
+        assert Path(fetched["path"]).is_absolute()
+
+    def test_get_or_create_many_stores_absolute_paths(self, conn, tmp_path):
+        """Multiple paths should all be stored as absolute."""
+        file1 = tmp_path / "a.txt"
+        file2 = tmp_path / "b.txt"
+        file1.write_text("a")
+        file2.write_text("b")
+
+        crud.file.get_or_create_many(conn, [file1, file2])
+
+        for path in [file1, file2]:
+            fetched = crud.file.get_by_path(conn, path.resolve())
+            assert fetched is not None
+            assert fetched["path"] == str(path.resolve())
+            assert Path(fetched["path"]).is_absolute()
 
 
 class TestFileTag:
