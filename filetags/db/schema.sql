@@ -34,9 +34,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS file_tag_unique_child
 ON file_tag (file_id, tag_id, parent_id)
 WHERE parent_id IS NOT NULL;
 
+/** TODO:
+    consider index on parent_id and potentially tag_id, parent_id
+*/
+-- Indices for lookup
+CREATE INDEX IF NOT EXISTS idx_file_tag_file_id ON file_tag(file_id);
+CREATE INDEX IF NOT EXISTS idx_file_tag_tag_id ON file_tag(tag_id);
 
 CREATE TABLE IF NOT EXISTS tagalong (
     tag_id INTEGER REFERENCES tag(id) ON DELETE CASCADE,
     tagalong_id INTEGER REFERENCES tag(id) ON DELETE CASCADE,
     PRIMARY KEY (tag_id, tagalong_id)
 );
+
+-- Index for lookup; mostly for `apply`
+CREATE INDEX IF NOT EXISTS idx_tagalong_tag_id ON tagalong(tag_id);
