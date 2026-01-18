@@ -1,5 +1,8 @@
+import sqlite3
+
 import pytest
 
+from filetags.db.init import SCHEMA_PATH
 from filetags.models.node import Node
 
 test_data = {
@@ -39,6 +42,16 @@ test_data = {
         ["scissors", "rock"],
     ],
 }
+
+
+@pytest.fixture
+def conn():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.executescript(SCHEMA_PATH.read_text())
+    yield conn
+    conn.close()
 
 
 @pytest.fixture
