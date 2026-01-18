@@ -5,44 +5,6 @@ import pytest
 from filetags.db.init import SCHEMA_PATH
 from filetags.models.node import Node
 
-test_data = {
-    "entries": [
-        {
-            "name": "file1",
-            "children": [
-                {
-                    "name": "A",
-                    "children": [
-                        {"name": "a", "children": []},
-                        {"name": "b", "children": []},
-                    ],
-                },
-                {"name": "B", "children": [{"name": "a", "children": []}]},
-            ],
-        },
-        {
-            "name": "file2",
-            "children": [
-                {
-                    "name": "B",
-                    "children": [
-                        {"name": "b", "children": []},
-                    ],
-                }
-            ],
-        },
-    ],
-    "tagalongs": [
-        # basic tagalong chain
-        ["AAA", "BBB"],
-        ["BBB", "CCC"],
-        # circular tagalong
-        ["rock", "paper"],
-        ["paper", "scissors"],
-        ["scissors", "rock"],
-    ],
-}
-
 
 @pytest.fixture
 def conn():
