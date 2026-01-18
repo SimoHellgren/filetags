@@ -3,6 +3,21 @@ from sqlite3 import Connection, Row
 from typing import Sequence
 
 from filetags.crud.base import BaseCRUD, _placeholders
+from filetags.utils import flatten
+
+
+def _get_inode_and_device(path: Path) -> tuple[int | None, int | None]:
+    """Get's inode and device if file exists, otherwise None.
+
+    Used mainly as a convenience for testing, as most tests do not use real
+    files. Might want to change later.
+    """
+    try:
+        stat = path.stat()
+        return stat.st_ino, stat.st_dev
+
+    except FileNotFoundError:
+        return None, None
 
 
 class FileCRUD(BaseCRUD):
@@ -18,21 +33,24 @@ class FileCRUD(BaseCRUD):
 
     def get_or_create(self, conn: Connection, path: Path) -> Row:
         q = """
-                INSERT INTO file (path) VALUES (?)
+                INSERT INTO file (path, inode, device) VALUES (?,?,?)
                 ON CONFLICT(path) DO UPDATE SET path=path --no-op update
-                RETURNING id
+                RETURNING *
             """
-        return conn.execute(q, (str(path),)).fetchone()
+
+        inode, device = _get_inode_and_device(path)
+        return conn.execute(q, (str(path), inode, device)).fetchone()
 
     def get_or_create_many(self, conn: Connection, paths: list[Path]) -> list[Row]:
-        vals = _placeholders(len(paths), "(?)")
+        vals = _placeholders(len(paths), "(?,?,?)")
         q = f"""
-                INSERT INTO file (path) VALUES {vals}
+                INSERT INTO file (path, inode, device) VALUES {vals}
                 ON CONFLICT(path) DO UPDATE SET path=path --no-op update
                 RETURNING id
             """
+        params = [(str(p), *_get_inode_and_device(p)) for p in paths]
 
-        return conn.execute(q, [*map(str, paths)]).fetchall()
+        return conn.execute(q, tuple(flatten(params))).fetchall()
 
 
 file = FileCRUD()

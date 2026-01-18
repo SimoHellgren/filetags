@@ -2,7 +2,9 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS file (
     id INTEGER PRIMARY KEY,
-    path TEXT NOT NULL UNIQUE
+    path TEXT NOT NULL UNIQUE,
+    inode INTEGER,
+    device INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS tag (

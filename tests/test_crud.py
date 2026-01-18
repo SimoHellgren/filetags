@@ -173,6 +173,45 @@ class TestFileCRUD:
 
         assert crud.file.get_by_path(conn, Path("foo.txt")) is None
 
+    def test_get_or_create_stores_inode_and_device(self, conn, tmp_path):
+        """When adding a real file, inode and device should be stored."""
+        real_file = tmp_path / "real.txt"
+        real_file.write_text("content")
+
+        crud.file.get_or_create(conn, real_file)
+
+        # Re-fetch to get all columns
+        fetched = crud.file.get_by_path(conn, real_file)
+        stat = real_file.stat()
+
+        assert fetched["inode"] == stat.st_ino
+        assert fetched["device"] == stat.st_dev
+
+    def test_get_or_create_many_stores_inode_and_device(self, conn, tmp_path):
+        """When adding multiple real files, inode and device should be stored for each."""
+        file1 = tmp_path / "a.txt"
+        file2 = tmp_path / "b.txt"
+        file1.write_text("a")
+        file2.write_text("b")
+
+        crud.file.get_or_create_many(conn, [file1, file2])
+
+        for path in [file1, file2]:
+            fetched = crud.file.get_by_path(conn, path)
+            stat = path.stat()
+            assert fetched["inode"] == stat.st_ino
+            assert fetched["device"] == stat.st_dev
+
+    def test_inode_device_null_for_nonexistent_path(self, conn):
+        """For paths that don't exist on disk, inode/device should be null."""
+        # This tests the current behavior - you may want to change this
+        crud.file.get_or_create(conn, Path("nonexistent.txt"))
+
+        fetched = crud.file.get_by_path(conn, Path("nonexistent.txt"))
+
+        assert fetched["inode"] is None
+        assert fetched["device"] is None
+
 
 class TestFileTag:
     @pytest.fixture
