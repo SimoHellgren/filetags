@@ -1,5 +1,6 @@
-from typing import Self, TypeVar, Generic, Optional, Generator, Callable, Iterator
-from filetags.src.utils import tail, find
+from typing import Callable, Generator, Generic, Iterator, Optional, Self, TypeVar
+
+from filetags.utils import find, tail
 
 T = TypeVar("T")
 
@@ -40,7 +41,7 @@ class Node(Generic[T]):
     def paths_down(self) -> Generator[tuple[Self, ...], None, None]:
         """Yield all paths to leaves from self"""
         if not self.children:
-            yield self,
+            yield (self,)
 
         else:
             for child in self.children:
@@ -175,10 +176,7 @@ class Node(Generic[T]):
         return f"{self.value}" + (f"[{children}]" if children else "")
 
     def __repr__(self) -> str:
-        return f"Node({self.value})"
-
-    def __json__(self):
-        return {"name": self.value, "children": self.children}
+        return f"Node({self.value!r})"
 
     def is_rooted_subtree(self, other: Self) -> bool:
         """Checks if structure of self is found in other. Must match also at root.
@@ -218,3 +216,10 @@ class Node(Generic[T]):
 
             else:
                 self.add_child(child)
+
+    def __eq__(self, other: Self) -> bool:
+        return self.value == other.value
+
+    def __hash__(self):
+        # this is not perhaps the best choice, but works for now
+        return hash(self.value)
