@@ -59,6 +59,86 @@ class TestInit:
 
 
 # ============================================================
+# Backup command
+# ============================================================
+
+
+class TestBackup:
+    def test_backup_creates_file(self, runner, vault, tmp_path):
+        backup_path = tmp_path / "backup.db"
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "db", "backup", str(backup_path)]
+        )
+
+        assert result.exit_code == 0
+        assert backup_path.exists()
+        assert "Backup created" in result.output
+
+    def test_backup_default_filename(self, runner, vault, tmp_path):
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(cli, ["--vault", str(vault), "db", "backup"])
+
+            assert result.exit_code == 0
+            # Should create file with timestamp pattern
+            backup_files = list(Path(".").glob("test_vault-*.db"))
+            assert len(backup_files) == 1
+
+    def test_backup_with_directory(self, runner, vault, tmp_path):
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "db", "backup", "-d", str(backup_dir)]
+        )
+
+        assert result.exit_code == 0
+        backup_files = list(backup_dir.glob("test_vault-*.db"))
+        assert len(backup_files) == 1
+
+    def test_backup_is_valid_sqlite(self, runner, vault, tmp_path, sample_file):
+        import sqlite3
+
+        # Add some data first
+        runner.invoke(
+            cli, ["--vault", str(vault), "add", "-f", str(sample_file), "-t", "rock"]
+        )
+
+        backup_path = tmp_path / "backup.db"
+        runner.invoke(cli, ["--vault", str(vault), "db", "backup", str(backup_path)])
+
+        # Verify backup is valid and contains data
+        conn = sqlite3.connect(backup_path)
+        count = conn.execute("SELECT COUNT(*) FROM file").fetchone()[0]
+        conn.close()
+
+        assert count == 1
+
+    def test_backup_existing_prompts(self, runner, vault, tmp_path):
+        backup_path = tmp_path / "backup.db"
+        backup_path.write_text("existing")
+
+        # Say no to overwrite
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "db", "backup", str(backup_path)], input="n\n"
+        )
+
+        assert result.exit_code != 0  # Aborted
+
+    def test_backup_existing_overwrite(self, runner, vault, tmp_path):
+        backup_path = tmp_path / "backup.db"
+        backup_path.write_text("existing")
+
+        # Say yes to overwrite
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "db", "backup", str(backup_path)], input="y\n"
+        )
+
+        assert result.exit_code == 0
+        assert backup_path.stat().st_size > len("existing")  # Now it's a real db
+
+
+# ============================================================
 # Vault requirement
 # ============================================================
 
