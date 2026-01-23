@@ -93,3 +93,26 @@ def migrate_json(vault: LazyVault, json_vault: Path):
             crud.tagalong.create(conn, source["id"], target["id"])
 
         crud.tagalong.apply(conn)
+
+
+@db.command(help="Database info")
+@click.pass_obj
+def info(vault: LazyVault):
+    with vault as conn:
+        sqlite_version = conn.execute("SELECT sqlite_version()").fetchone()[0]
+        user_version = conn.execute("PRAGMA user_version").fetchone()[0]
+        tables = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+
+        click.echo(f"SQLite version: {sqlite_version}")
+        click.echo(f"Schema version: {user_version}")
+        click.echo(f"Path: {vault._path}")
+        click.echo(f"Size: {vault._path.stat().st_size / 1024:.1f} KB")
+        click.echo(f"Modified: {datetime.fromtimestamp(vault._path.stat().st_mtime)}")
+        click.echo()
+        click.echo("Tables:")
+
+        for (table_name,) in tables:
+            count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+            click.echo(f"  {table_name}: {count} rows")
