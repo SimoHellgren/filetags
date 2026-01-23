@@ -4,50 +4,56 @@ from sqlite3 import Connection
 import click
 
 from filetags import service
-from filetags.commands import tag, tagalong
+from filetags.commands import db, tag, tagalong
 from filetags.db.connect import get_vault
-from filetags.db.init import init_db
 from filetags.models.node import Node
 from filetags.parser import parse
 from filetags.utils import compile_pattern, flatten
 
-VAULT_PATH = Path("vault.db")
+DEFAULT_VAULT_PATH = Path("./vault.db")
+
+
+class LazyVault:
+    """Lazily gets vault only when it is truly accessed."""
+
+    def __init__(self, path: Path, ctx: click.Context):
+        self._path = path
+        self._ctx = ctx
+        self._conn: Connection | None = None
+
+    def _get_conn(self) -> Connection:
+        if self._conn is None:
+            if not self._path.exists():
+                raise click.ClickException(
+                    f"{self._path} does not exist. Run `ftag db init {self._path}` to create"
+                )
+
+            self._conn = self._ctx.with_resource(get_vault(self._path))
+
+        return self._conn
+
+    def __enter__(self) -> Connection:
+        return self._get_conn().__enter__()
+
+    def __exit__(self, *args):
+        return self._conn.__exit__(*args)
 
 
 @click.group()
 @click.option(
     "--vault",
     type=click.Path(path_type=Path),
-    default="./vault.db",
-    help="Path to vault file, default ./vault.db",
+    default=DEFAULT_VAULT_PATH,
+    help=f"Path to vault file, default {DEFAULT_VAULT_PATH}",
 )
 @click.pass_context
 def cli(ctx: click.Context, vault: Path):
-    # skip checking / getting connection if running init
-    if ctx.invoked_subcommand == "init":
-        return
-
-    if not vault.exists():
-        raise click.ClickException(
-            f"{vault} does not exist. Run `ftag init {vault}` to create"
-        )
-
-    ctx.obj = ctx.with_resource(get_vault(vault))
+    ctx.obj = LazyVault(vault, ctx)
 
 
 cli.add_command(tag.tag)
 cli.add_command(tagalong.tagalong)
-
-
-@cli.command(help="Initialize empty vault")
-@click.argument("filepath", type=click.Path(path_type=Path), default="vault.db")
-def init(filepath: Path):
-    if filepath.exists():
-        click.echo(f"{filepath} already exists.")
-
-    else:
-        init_db(filepath)
-        click.echo(f"{filepath} created.")
+cli.add_command(db.db)
 
 
 @cli.command(help="Add tags to files")
@@ -67,7 +73,7 @@ def init(filepath: Path):
 )
 @click.pass_obj
 def add(
-    vault: Connection,
+    vault: LazyVault,
     files: tuple[Path, ...],
     tags: tuple[str, ...],
     tagalongs: bool,
@@ -88,7 +94,7 @@ def add(
 )
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
 @click.pass_obj
-def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
+def remove(vault: LazyVault, files: tuple[Path, ...], tags: tuple[str, ...]):
     root_tags = list(flatten(parse(t).children for t in tags))
 
     with vault as conn:
@@ -98,7 +104,7 @@ def remove(vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...]):
 @cli.command(help="Show tags of files")
 @click.argument("files", nargs=-1, type=click.Path(path_type=Path))
 @click.pass_obj
-def show(vault: Connection, files: tuple[Path, ...]):
+def show(vault: LazyVault, files: tuple[Path, ...]):
     with vault as conn:
         files_with_tags = service.get_files_with_tags(conn, files)
 
@@ -127,7 +133,7 @@ def show(vault: Connection, files: tuple[Path, ...]):
 )
 @click.pass_obj
 def set_(
-    vault: Connection, files: tuple[Path, ...], tags: tuple[str, ...], tagalongs: bool
+    vault: LazyVault, files: tuple[Path, ...], tags: tuple[str, ...], tagalongs: bool
 ):
     root = Node("root", list(flatten(parse(t).children for t in tags)))
 
@@ -145,7 +151,7 @@ def set_(
 )
 @click.option("--retain-file", type=click.BOOL, is_flag=True)
 @click.pass_obj
-def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
+def drop(vault: LazyVault, files: tuple[int, ...], retain_file: bool):
     with vault as conn:
         service.drop_file_tags(conn, files, retain_file)
 
@@ -173,7 +179,7 @@ def drop(vault: Connection, files: tuple[int, ...], retain_file: bool):
 @click.option("--prefix", default="")
 @click.pass_obj
 def ls(
-    vault: Connection,
+    vault: LazyVault,
     long: bool,
     select: tuple[str, ...],
     exclude: tuple[str, ...],
@@ -220,7 +226,7 @@ def ls(
 @cli.command(help="Migrate legacy json vault into SQLite.")
 @click.argument("json-vault", type=click.Path(path_type=Path, exists=True))
 @click.pass_obj
-def migrate_json(vault: Connection, json_vault: Path):
+def migrate_json(vault: LazyVault, json_vault: Path):
     import json
 
     from filetags import crud

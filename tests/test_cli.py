@@ -17,7 +17,7 @@ def vault(tmp_path):
     """Creates a temporary vault file and returns its path."""
     vault_path = tmp_path / "test_vault.db"
     runner = CliRunner()
-    runner.invoke(cli, ["init", str(vault_path)])
+    runner.invoke(cli, ["db", "init", str(vault_path)])
     return vault_path
 
 
@@ -38,21 +38,21 @@ class TestInit:
     def test_init_creates_vault(self, runner, tmp_path):
         vault_path = tmp_path / "new_vault.db"
 
-        result = runner.invoke(cli, ["init", str(vault_path)])
+        result = runner.invoke(cli, ["db", "init", str(vault_path)])
 
         assert result.exit_code == 0
         assert vault_path.exists()
         assert "created" in result.output
 
     def test_init_existing_vault(self, runner, vault):
-        result = runner.invoke(cli, ["init", str(vault)])
+        result = runner.invoke(cli, ["db", "init", str(vault)])
 
         assert result.exit_code == 0
         assert "already exists" in result.output
 
     def test_init_default_path(self, runner, tmp_path):
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(cli, ["init"])
+            result = runner.invoke(cli, ["db", "init"])
 
             assert result.exit_code == 0
             assert Path("vault.db").exists()
@@ -253,7 +253,10 @@ class TestLs:
 
         assert result.exit_code == 0
         # Should show relative path, not absolute
-        assert "subdir/nested.txt" in result.output or "subdir\\nested.txt" in result.output
+        assert (
+            "subdir/nested.txt" in result.output
+            or "subdir\\nested.txt" in result.output
+        )
         assert str(tmp_path) not in result.output
 
     def test_ls_relative_to_cwd(self, runner, vault, tmp_path):
