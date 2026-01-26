@@ -95,3 +95,24 @@ class TestBackup:
 
         assert result.exit_code == 0
         assert backup_path.stat().st_size > len("existing")  # Now it's a real db
+
+
+class TestInfo:
+    def test_info_shows_basic_fields(self, runner, vault):
+        result = runner.invoke(cli, ["--vault", str(vault), "db", "info"])
+
+        assert result.exit_code == 0
+        assert "SQLite version:" in result.output
+        assert "Schema version:" in result.output
+        assert "Path:" in result.output
+        assert "Size:" in result.output
+        assert "Modified:" in result.output
+        assert "Tables:" in result.output
+
+    def test_info_shows_table_counts(self, runner, vault, tagged_file):
+        result = runner.invoke(cli, ["--vault", str(vault), "db", "info"])
+
+        assert result.exit_code == 0
+        assert "file:" in result.output
+        assert "tag:" in result.output
+        assert "file_tag:" in result.output
