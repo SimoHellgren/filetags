@@ -214,3 +214,43 @@ def check(vault: LazyVault, fix: bool):
 
         suffix = click.style(" (fixed)", fg="green") if fixed else ""
         click.echo(f"{path}  [{label}]{suffix}")
+
+
+@file.command(help="Move tracked file(s) to a new location.")
+@click.argument("sources", nargs=-1, type=click.Path(path_type=Path, exists=True))
+@click.option("-t", "--to", "dst", required=True, type=click.Path(path_type=Path))
+@click.option("-f", "--force", is_flag=True, help="Overwrite without confirmation")
+@click.pass_obj
+def mv(vault: LazyVault, sources: Sequence[Path], dst: Path, force: bool):
+    import shutil
+
+    if not sources:
+        raise click.UsageError("No source files provided")
+
+    # Multiple sources require dst to be a directory
+    if len(sources) > 1 and not dst.is_dir():
+        raise click.UsageError(
+            "Destination must be a directory when moving multiple files"
+        )
+
+    with vault as conn:
+        for src in sources:
+            record = crud.file.get_by_path(conn, src)
+
+            if not record:
+                raise click.ClickException(f"{src} is not tracked in the vault")
+
+            # Determine actual destination path
+            if dst.is_dir():
+                actual_dst = dst / src.name
+            else:
+                actual_dst = dst
+
+            if actual_dst.exists() and not force:
+                click.confirm(f"{actual_dst} already exists. Overwrite?", abort=True)
+
+            shutil.move(src, actual_dst)
+            stat = actual_dst.stat()
+            crud.file.update(conn, record["id"], actual_dst, stat.st_ino, stat.st_dev)
+
+            click.echo(f"Moved {src} -> {actual_dst}")

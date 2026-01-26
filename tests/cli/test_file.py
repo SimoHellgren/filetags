@@ -476,3 +476,182 @@ class TestFileCheck:
         # Subsequent check should be clean
         result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
         assert "No issues found" in result.output
+
+
+class TestFileMv:
+    def test_mv_single_file(self, runner, vault, tagged_file, tmp_path):
+        """Move a single file to a new location."""
+        dst = tmp_path / "moved.txt"
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(dst)]
+        )
+
+        assert result.exit_code == 0
+        assert "Moved" in result.output
+
+        # Original file should be gone
+        assert not tagged_file.exists()
+
+        # New file should exist
+        assert dst.exists()
+
+        # Tags should be preserved
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(dst)]
+        )
+        assert "rock" in info_result.output
+
+    def test_mv_to_directory(self, runner, vault, tagged_file, tmp_path):
+        """Move file to a directory (keeps original name)."""
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(subdir)]
+        )
+
+        assert result.exit_code == 0
+
+        expected_dst = subdir / tagged_file.name
+        assert expected_dst.exists()
+        assert not tagged_file.exists()
+
+    def test_mv_multiple_files_to_directory(self, runner, vault, sample_files, tmp_path):
+        """Move multiple files to a directory."""
+        file1, file2 = sample_files
+
+        # Add files to vault
+        runner.invoke(cli, ["--vault", str(vault), "file", "add", str(file1), str(file2)])
+
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(file1), str(file2), "--to", str(subdir)],
+        )
+
+        assert result.exit_code == 0
+        assert (subdir / file1.name).exists()
+        assert (subdir / file2.name).exists()
+        assert not file1.exists()
+        assert not file2.exists()
+
+    def test_mv_multiple_files_to_non_directory_fails(self, runner, vault, sample_files, tmp_path):
+        """Cannot move multiple files to a non-directory destination."""
+        file1, file2 = sample_files
+
+        runner.invoke(cli, ["--vault", str(vault), "file", "add", str(file1), str(file2)])
+
+        dst = tmp_path / "single_file.txt"
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(file1), str(file2), "--to", str(dst)],
+        )
+
+        assert result.exit_code != 0
+        assert "must be a directory" in result.output
+
+    def test_mv_untracked_file_fails(self, runner, vault, sample_file, tmp_path):
+        """Cannot move files not tracked in vault."""
+        dst = tmp_path / "moved.txt"
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", str(sample_file), "--to", str(dst)]
+        )
+
+        assert result.exit_code != 0
+        assert "not tracked" in result.output
+
+    def test_mv_no_sources_fails(self, runner, vault, tmp_path):
+        """Must provide at least one source file."""
+        dst = tmp_path / "somewhere"
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", "--to", str(dst)]
+        )
+
+        assert result.exit_code != 0
+        assert "No source files" in result.output
+
+    def test_mv_requires_to_option(self, runner, vault, tagged_file):
+        """--to is required."""
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", str(tagged_file)]
+        )
+
+        assert result.exit_code != 0
+        assert "--to" in result.output
+
+    def test_mv_overwrite_prompts_confirmation(self, runner, vault, tagged_file, tmp_path):
+        """Moving to existing file prompts for confirmation."""
+        existing = tmp_path / "existing.txt"
+        existing.write_text("original content")
+
+        # Answer "no" to confirmation
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(existing)],
+            input="n\n",
+        )
+
+        assert result.exit_code != 0  # Aborted
+
+        # Original files should be untouched
+        assert tagged_file.exists()
+        assert existing.read_text() == "original content"
+
+    def test_mv_overwrite_with_confirmation(self, runner, vault, tagged_file, tmp_path):
+        """Moving to existing file with 'yes' confirmation overwrites."""
+        existing = tmp_path / "existing.txt"
+        existing.write_text("original content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(existing)],
+            input="y\n",
+        )
+
+        assert result.exit_code == 0
+        assert not tagged_file.exists()
+        assert existing.read_text() == "test content"  # From tagged_file fixture
+
+    def test_mv_force_skips_confirmation(self, runner, vault, tagged_file, tmp_path):
+        """--force skips overwrite confirmation."""
+        existing = tmp_path / "existing.txt"
+        existing.write_text("original content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(existing), "--force"],
+        )
+
+        assert result.exit_code == 0
+        assert not tagged_file.exists()
+        assert existing.read_text() == "test content"
+
+    def test_mv_force_short_flag(self, runner, vault, tagged_file, tmp_path):
+        """-f short flag works for --force."""
+        existing = tmp_path / "existing.txt"
+        existing.write_text("original content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "mv", str(tagged_file), "--to", str(existing), "-f"],
+        )
+
+        assert result.exit_code == 0
+        assert existing.read_text() == "test content"
+
+    def test_mv_short_to_flag(self, runner, vault, tagged_file, tmp_path):
+        """-t short flag works for --to."""
+        dst = tmp_path / "moved.txt"
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "mv", str(tagged_file), "-t", str(dst)]
+        )
+
+        assert result.exit_code == 0
+        assert dst.exists()
