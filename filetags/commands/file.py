@@ -45,12 +45,30 @@ def check_inode(p: Path, record: dict) -> dict:
     return {"text": "OK", "fg": "green"}
 
 
-@file.command(help="Show file info")
+@file.command(help="Show file info.")
 @click.argument("files", nargs=-1, type=click.Path(path_type=Path))
+@click.option("-i", "--inode", type=int, help="Lookup by inode.")
 @click.pass_obj
-def info(vault: LazyVault, files: tuple[Path, ...]):
+def info(vault: LazyVault, files: Sequence[Path], inode: int):
+    if files and inode:
+        raise click.UsageError("Cannot use both --inode and file paths")
+
+    if not (files or inode):
+        raise click.UsageError("Provide file path or --inode")
+
     with vault as conn:
-        files_with_tags = service.get_files_with_tags(conn, files)
+        if inode is not None:
+            records = crud.file.get_by_inode(conn, inode)
+
+            if not records:
+                return
+
+            lookup_paths = [Path(r["path"]) for r in records]
+
+        else:
+            lookup_paths = files
+
+        files_with_tags = service.get_files_with_tags(conn, lookup_paths)
 
     for path, data in files_with_tags.items():
         record = data["file"]

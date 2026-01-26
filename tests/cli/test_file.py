@@ -188,3 +188,54 @@ class TestFileInfo:
         assert file2.name in result.output
         assert "rock" in result.output
         assert "jazz" in result.output
+
+    def test_info_by_inode(self, runner, vault, tagged_file):
+        """Looking up by inode should return the file."""
+        inode = tagged_file.stat().st_ino
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", "--inode", str(inode)]
+        )
+
+        assert result.exit_code == 0
+        assert str(tagged_file) in result.output
+        assert "rock" in result.output
+
+    def test_info_by_inode_short_flag(self, runner, vault, tagged_file):
+        """The -i short flag should work."""
+        inode = tagged_file.stat().st_ino
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", "-i", str(inode)]
+        )
+
+        assert result.exit_code == 0
+        assert str(tagged_file) in result.output
+
+    def test_info_by_inode_not_found(self, runner, vault, tagged_file):
+        """Looking up non-existent inode should return nothing."""
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", "--inode", "999999999"]
+        )
+
+        assert result.exit_code == 0
+        assert result.output == ""
+
+    def test_info_inode_and_path_mutually_exclusive(self, runner, vault, tagged_file):
+        """Cannot use both --inode and file paths."""
+        inode = tagged_file.stat().st_ino
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "info", "--inode", str(inode), str(tagged_file)],
+        )
+
+        assert result.exit_code != 0
+        assert "Cannot use both" in result.output
+
+    def test_info_requires_inode_or_path(self, runner, vault):
+        """Must provide either --inode or file paths."""
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "info"])
+
+        assert result.exit_code != 0
+        assert "Provide file path or --inode" in result.output
