@@ -1,8 +1,9 @@
 from pathlib import Path
+from typing import Sequence
 
 import click
 
-from filetags import service
+from filetags import crud, service
 from filetags.commands.context import LazyVault
 
 
@@ -63,3 +64,28 @@ def info(vault: LazyVault, files: tuple[Path, ...]):
                 "Inode/device: " + click.style(**check_inode(path, record)),
             ],
         )
+
+
+@file.command(help="Add files to db (without tags).")
+@click.argument(
+    "files", nargs=-1, type=click.Path(path_type=Path, exists=True, dir_okay=False)
+)
+@click.pass_obj
+def add(vault: LazyVault, files: Sequence[Path]):
+    with vault as conn:
+        crud.file.get_or_create_many(conn, files)
+
+
+@file.command(help="Drop files from db.")
+@click.argument(
+    "files", nargs=-1, type=click.Path(path_type=Path, exists=True, dir_okay=False)
+)
+@click.pass_obj
+def drop(vault: LazyVault, files: Sequence[Path]):
+    with vault as conn:
+        records = crud.file.get_many_by_path(conn, files)
+        click.confirm(
+            f"Going do delete {len(records)} file(s). You sure about this", abort=True
+        )
+        for file in records:
+            crud.file.delete(conn, file["id"])
