@@ -140,3 +140,18 @@ def search_files(conn: Connection, select_tags: list[Node], exclude_tags: list[N
 def get_all_files(conn: Connection) -> list[Row]:
     files = crud.file.get_all(conn)
     return sorted(files, key=lambda x: x["path"])
+
+
+def relocate_file(conn: Connection, file: Row, search_root: Path):
+    """Finds a file by inode/device and updates its path."""
+    target_inode = file["inode"]
+    target_device = file["device"]
+
+    for path in search_root.rglob("*"):
+        if not path.is_file():
+            continue
+
+        stat = path.stat()
+
+        if stat.st_ino == target_inode and stat.st_dev == target_device:
+            crud.file.update(conn, file["id"], path, stat.st_ino, stat.st_dev)

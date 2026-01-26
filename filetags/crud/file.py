@@ -63,5 +63,13 @@ class FileCRUD(BaseCRUD):
 
         return conn.execute(q, tuple(flatten(params))).fetchall()
 
+    def update(
+        self, conn: Connection, file_id: int, path: Path, inode: int, device: int
+    ):
+        conn.execute(
+            "UPDATE file SET path = ?, inode = ?, device = ? WHERE id = ?",
+            (str(path.resolve()), inode, device, file_id),
+        )
+
 
 file = FileCRUD()

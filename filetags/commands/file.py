@@ -107,3 +107,51 @@ def drop(vault: LazyVault, files: Sequence[Path]):
         )
         for file in records:
             crud.file.delete(conn, file["id"])
+
+
+@file.command(help="Edit file record.")
+@click.argument("files", nargs=-1, type=click.Path(path_type=Path, dir_okay=False))
+@click.option("--refresh", is_flag=True, help="Use path to update inode/device")
+@click.option(
+    "--relocate",
+    type=click.Path(path_type=Path),
+    is_flag=False,
+    flag_value=Path("."),
+    default=None,
+    help="Searches for file by inode/device (default: current dir)",
+)
+@click.option("--path", type=click.Path(path_type=Path, dir_okay=False, exists=True))
+@click.pass_obj
+def edit(
+    vault: LazyVault,
+    files: Sequence[Path],
+    refresh: bool,
+    relocate: Path | None,
+    path: Path | None,
+):
+    if not files:
+        raise click.UsageError("No files provided")
+
+    if (refresh + bool(relocate) + bool(path)) > 1:
+        raise click.UsageError(
+            "Can only provide one of:\n  --refresh\n  --relocate\n  --path"
+        )
+
+    if len(files) > 1 and path:
+        raise click.UsageError("Can't provide multiple files and --path")
+
+    with vault as conn:
+        records = crud.file.get_many_by_path(conn, files)
+        if path:
+            stat = path.stat()  # stat the new file
+            crud.file.update(conn, records[0]["id"], path, stat.st_ino, stat.st_dev)
+
+        elif refresh:
+            for record in records:
+                p = Path(record["path"])
+                stat = p.stat()
+                crud.file.update(conn, record["id"], p, stat.st_ino, stat.st_dev)
+
+        elif relocate:
+            for record in records:
+                service.relocate_file(conn, record, relocate)

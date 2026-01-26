@@ -239,3 +239,150 @@ class TestFileInfo:
 
         assert result.exit_code != 0
         assert "Provide file path or --inode" in result.output
+
+
+class TestFileEdit:
+    def test_edit_refresh_updates_inode(self, runner, vault, tagged_file, tmp_path):
+        """--refresh should update inode/device from the file's current path."""
+        # Create a mismatch: move original, create new file at same path
+        backup = tmp_path / "backup.txt"
+        tagged_file.rename(backup)
+        tagged_file.write_text("new content")
+
+        # Verify mismatch exists
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(tagged_file)]
+        )
+        assert "Mismatch" in info_result.output
+
+        # Run refresh
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "edit", str(tagged_file), "--refresh"]
+        )
+        assert result.exit_code == 0
+
+        # Verify inode now matches
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(tagged_file)]
+        )
+        assert "OK" in info_result.output
+
+    def test_edit_refresh_multiple_files(self, runner, vault, sample_files, tmp_path):
+        """--refresh should work with multiple files."""
+        file1, file2 = sample_files
+
+        # Add files to vault
+        runner.invoke(
+            cli, ["--vault", str(vault), "file", "add", str(file1), str(file2)]
+        )
+
+        # Create mismatches
+        for f in sample_files:
+            backup = tmp_path / f"backup_{f.name}"
+            f.rename(backup)
+            f.write_text("new content")
+
+        # Refresh both
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "edit", str(file1), str(file2), "--refresh"],
+        )
+        assert result.exit_code == 0
+
+        # Both should now be OK
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(file1), str(file2)]
+        )
+        assert info_result.output.count("OK") == 2
+
+    def test_edit_path_updates_record(self, runner, vault, tagged_file, tmp_path):
+        """--path should point the record to a new file."""
+        new_file = tmp_path / "newfile.txt"
+        new_file.write_text("new content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "edit", str(tagged_file), "--path", str(new_file)],
+        )
+        assert result.exit_code == 0
+
+        # Old path should no longer be in vault
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(tagged_file)]
+        )
+        assert str(tagged_file) not in info_result.output or info_result.exit_code != 0
+
+        # New path should be in vault with the tags
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(new_file)]
+        )
+        assert str(new_file) in info_result.output
+        assert "rock" in info_result.output
+
+    def test_edit_relocate_finds_moved_file(self, runner, vault, tagged_file, tmp_path):
+        """--relocate should find a file that was moved."""
+        # Move the file to a subdirectory
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+        new_location = subdir / tagged_file.name
+        tagged_file.rename(new_location)
+
+        # Record should now show "Not found"
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(tagged_file)]
+        )
+        assert "Not found" in info_result.output
+
+        # Relocate searching from tmp_path
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "edit", str(tagged_file), "--relocate", str(tmp_path)],
+        )
+        assert result.exit_code == 0
+
+        # Record should now point to new location
+        info_result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "info", str(new_location)]
+        )
+        assert str(new_location) in info_result.output
+        assert "rock" in info_result.output
+
+    def test_edit_no_files_fails(self, runner, vault):
+        """Must provide at least one file."""
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "edit", "--refresh"]
+        )
+
+        assert result.exit_code != 0
+        assert "No files provided" in result.output
+
+    def test_edit_multiple_options_fails(self, runner, vault, tagged_file, tmp_path):
+        """Cannot use multiple edit options together."""
+        new_file = tmp_path / "newfile.txt"
+        new_file.write_text("content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "edit", str(tagged_file), "--refresh", "--path", str(new_file)],
+        )
+
+        assert result.exit_code != 0
+        assert "Can only provide one of" in result.output
+
+    def test_edit_path_with_multiple_files_fails(self, runner, vault, sample_files, tmp_path):
+        """Cannot use --path with multiple files."""
+        file1, file2 = sample_files
+        runner.invoke(
+            cli, ["--vault", str(vault), "file", "add", str(file1), str(file2)]
+        )
+
+        new_file = tmp_path / "newfile.txt"
+        new_file.write_text("content")
+
+        result = runner.invoke(
+            cli,
+            ["--vault", str(vault), "file", "edit", str(file1), str(file2), "--path", str(new_file)],
+        )
+
+        assert result.exit_code != 0
+        assert "Can't provide multiple files" in result.output
