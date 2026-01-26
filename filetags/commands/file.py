@@ -30,7 +30,7 @@ def get_file_status(path: Path, record: dict):
     return FileStatus.OK
 
 
-@click.group(help="File managament")
+@click.group(help="File management")
 @click.pass_obj
 def file(vault: LazyVault):
     pass
