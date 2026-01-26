@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Sequence
 
@@ -5,6 +6,28 @@ import click
 
 from filetags import crud, service
 from filetags.commands.context import LazyVault
+
+
+class FileStatus(Enum):
+    OK = "ok"
+    NOT_FOUND = "not_found"
+    INODE_MISMATCH = "mismatch"
+    INODE_MISSING = "inode_missing"
+
+
+def get_file_status(path: Path, record: dict):
+    if not path.exists():
+        return FileStatus.NOT_FOUND
+
+    if not record["inode"]:
+        return FileStatus.INODE_MISSING
+
+    stat = path.stat()
+
+    if not (record["inode"] == stat.st_ino and record["device"] == stat.st_dev):
+        return FileStatus.INODE_MISMATCH
+
+    return FileStatus.OK
 
 
 @click.group(help="File managament")
@@ -33,16 +56,13 @@ def check_path(p: Path) -> dict:
 
 
 def check_inode(p: Path, record: dict) -> dict:
-    if not record["inode"]:
-        return {"text": "Inode missing", "fg": "yellow"}
-
-    if p.exists():
-        stat = p.stat()
-
-        if not (record["inode"] == stat.st_ino and record["device"] == stat.st_dev):
-            return {"text": "Mismatch", "fg": "red"}
-
-    return {"text": "OK", "fg": "green"}
+    status = get_file_status(p, record)
+    return {
+        FileStatus.OK: {"text": "OK", "fg": "green"},
+        FileStatus.INODE_MISMATCH: {"text": "Mismatch", "fg": "red"},
+        FileStatus.INODE_MISSING: {"text": "Inode missing", "fg": "yellow"},
+        FileStatus.NOT_FOUND: {"text": "OK", "fg": "green"},  # handled by check_path
+    }[status]
 
 
 @file.command(help="Show file info.")
@@ -155,3 +175,42 @@ def edit(
         elif relocate:
             for record in records:
                 service.relocate_file(conn, record, relocate)
+
+
+@file.command(help="Check file health.")
+@click.option("--fix", is_flag=True, help="Fix missing inodes by refreshing from path")
+@click.pass_obj
+def check(vault: LazyVault, fix: bool):
+    issues = []
+
+    with vault as conn:
+        all_files = crud.file.get_all(conn)
+
+        for record in all_files:
+            p = Path(record["path"])
+            status = get_file_status(p, record)
+
+            if status == FileStatus.OK:
+                continue
+
+            # Auto-fix missing inodes (file exists, just needs stat)
+            if status == FileStatus.INODE_MISSING and fix:
+                stat = p.stat()
+                crud.file.update(conn, record["id"], p, stat.st_ino, stat.st_dev)
+                issues.append((p, status, True))
+            else:
+                issues.append((p, status, False))
+
+    if not issues:
+        click.echo("No issues found.")
+        return
+
+    for path, status, fixed in issues:
+        label = {
+            FileStatus.NOT_FOUND: click.style("NOT FOUND", fg="red"),
+            FileStatus.INODE_MISMATCH: click.style("MISMATCH", fg="red"),
+            FileStatus.INODE_MISSING: click.style("INODE MISSING", fg="yellow"),
+        }[status]
+
+        suffix = click.style(" (fixed)", fg="green") if fixed else ""
+        click.echo(f"{path}  [{label}]{suffix}")

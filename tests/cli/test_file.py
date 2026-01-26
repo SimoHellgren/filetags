@@ -386,3 +386,93 @@ class TestFileEdit:
 
         assert result.exit_code != 0
         assert "Can't provide multiple files" in result.output
+
+
+class TestFileCheck:
+    def test_check_no_issues(self, runner, vault, tagged_file):
+        """Healthy vault should report no issues."""
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+
+        assert result.exit_code == 0
+        assert "No issues found" in result.output
+
+    def test_check_finds_not_found(self, runner, vault, tagged_file):
+        """Should report files whose path no longer exists."""
+        tagged_file.unlink()
+
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+
+        assert result.exit_code == 0
+        assert "NOT FOUND" in result.output
+        assert str(tagged_file) in result.output
+
+    def test_check_finds_mismatch(self, runner, vault, tagged_file, tmp_path):
+        """Should report files with inode mismatch."""
+        # Create mismatch: move original, create new file at same path
+        backup = tmp_path / "backup.txt"
+        tagged_file.rename(backup)
+        tagged_file.write_text("new content")
+
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+
+        assert result.exit_code == 0
+        assert "MISMATCH" in result.output
+        assert str(tagged_file) in result.output
+
+    def test_check_fix_does_not_fix_mismatch(self, runner, vault, tagged_file, tmp_path):
+        """--fix should NOT auto-fix mismatches (user must decide)."""
+        backup = tmp_path / "backup.txt"
+        tagged_file.rename(backup)
+        tagged_file.write_text("new content")
+
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check", "--fix"])
+
+        assert result.exit_code == 0
+        assert "MISMATCH" in result.output
+        assert "(fixed)" not in result.output
+
+        # Still shows mismatch on subsequent check
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+        assert "MISMATCH" in result.output
+
+    def test_check_finds_inode_missing(self, runner, vault, sample_file):
+        """Should report files with missing inode."""
+        import sqlite3
+
+        # Add file to vault
+        runner.invoke(cli, ["--vault", str(vault), "file", "add", str(sample_file)])
+
+        # Manually clear the inode/device to simulate legacy data
+        conn = sqlite3.connect(vault)
+        conn.execute("UPDATE file SET inode = NULL, device = NULL")
+        conn.commit()
+        conn.close()
+
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+
+        assert result.exit_code == 0
+        assert "INODE MISSING" in result.output
+        assert str(sample_file) in result.output
+
+    def test_check_fix_fixes_inode_missing(self, runner, vault, sample_file):
+        """--fix should populate missing inodes."""
+        import sqlite3
+
+        # Add file to vault
+        runner.invoke(cli, ["--vault", str(vault), "file", "add", str(sample_file)])
+
+        # Manually clear the inode/device
+        conn = sqlite3.connect(vault)
+        conn.execute("UPDATE file SET inode = NULL, device = NULL")
+        conn.commit()
+        conn.close()
+
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check", "--fix"])
+
+        assert result.exit_code == 0
+        assert "INODE MISSING" in result.output
+        assert "(fixed)" in result.output
+
+        # Subsequent check should be clean
+        result = runner.invoke(cli, ["--vault", str(vault), "file", "check"])
+        assert "No issues found" in result.output
