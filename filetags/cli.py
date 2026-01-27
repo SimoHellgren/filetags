@@ -7,7 +7,7 @@ from filetags.commands import db, file, tag, tagalong
 from filetags.commands.context import LazyVault
 from filetags.models.node import Node
 from filetags.parser import parse
-from filetags.utils import compile_pattern, flatten
+from filetags.utils import flatten
 
 DEFAULT_VAULT_PATH = Path("./vault.db")
 
@@ -152,18 +152,14 @@ def ls(
     select_nodes = [parse(n) for n in select]
     exclude_nodes = [parse(n) for n in exclude]
 
-    regex = compile_pattern(pattern, ignore_case)
-
     # TODO: some double-fetching here, still, but better than before
     # TODO: if not --long, could no need to fetch tags.
     with vault as conn:
-        files = service.search_files(conn, select_nodes, exclude_nodes)
-
-        filtered = [f for f in files if bool(regex.search(f["path"])) ^ invert_match]
-
-        files_with_tags = service.get_files_with_tags(
-            conn, [Path(f["path"]) for f in filtered]
+        paths = service.execute_query(
+            conn, select_nodes, exclude_nodes, pattern, ignore_case, invert_match
         )
+
+        files_with_tags = service.get_files_with_tags(conn, paths)
 
     for path, data in files_with_tags.items():
         roots = data["roots"]
