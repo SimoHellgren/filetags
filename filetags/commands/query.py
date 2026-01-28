@@ -79,8 +79,22 @@ def save(
     help="Display paths relative to given directory.",
 )
 @click.option("--prefix", default="")
+@click.option(
+    "-w",
+    "--write",
+    is_flag=False,
+    type=click.Path(path_type=Path),
+    flag_value=Path("."),
+)
 @click.pass_obj
-def run(vault: LazyVault, pattern: str, long: bool, relative_to: Path, prefix: str):
+def run(
+    vault: LazyVault,
+    pattern: str,
+    long: bool,
+    relative_to: Path,
+    prefix: str,
+    write: Path | None,
+):
     import json
 
     from filetags.parser import parse
@@ -110,9 +124,22 @@ def run(vault: LazyVault, pattern: str, long: bool, relative_to: Path, prefix: s
             else:
                 files_with_tags = {f: {} for f in paths}
 
-            click.echo(f"Query: {query['name']}")
-            for msg in format_file_output(files_with_tags, long, relative_to, prefix):
-                click.echo(msg)
+            output_lines = format_file_output(
+                files_with_tags, long, relative_to, prefix
+            )
+
+            if write:
+                path = write / query["name"]
+
+                with open(path, "w") as f:
+                    for msg in output_lines:
+                        click.echo(msg, f)
+
+            else:
+                click.echo(f"[{query['name']}]")
+                for msg in output_lines:
+                    click.echo(msg)
+                click.echo()
 
 
 @query.command(help="List all saved queries.")
