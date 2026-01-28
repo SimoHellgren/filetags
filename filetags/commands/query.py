@@ -185,4 +185,6 @@ def drop(vault: LazyVault, name: tuple[str, ...]):
     with vault as conn:
         for name_ in name:
             record = crud.query.get_by_name(conn, name_)
+            if not record:
+                raise click.ClickException(f"Query {name_} not found.")
             crud.query.delete(conn, record["id"])
