@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from random import random
 
 import click
 
@@ -87,6 +88,7 @@ def save(
     flag_value=Path("."),
     help="Write results to files. Optionally specify output directory (default cwd).",
 )
+@click.option("--shuffle", is_flag=True, help="Randomize result order")
 @click.pass_obj
 def run(
     vault: LazyVault,
@@ -95,6 +97,7 @@ def run(
     relative_to: Path,
     prefix: str,
     write: Path | None,
+    shuffle: bool,
 ):
     import json
 
@@ -128,6 +131,10 @@ def run(
             output_lines = format_file_output(
                 files_with_tags, long, relative_to, prefix
             )
+
+            if shuffle:
+                # mutation but oh well
+                output_lines = sorted(output_lines, key=lambda x: random())
 
             if write:
                 path = write / query["name"]
