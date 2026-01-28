@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import click
@@ -67,7 +68,7 @@ def save(
 
 
 @query.command(help="Run a saved query")
-@click.argument("name", type=str)
+@click.argument("pattern", type=str, default=r".*")
 @click.option(
     "-l", "--long", type=click.BOOL, is_flag=True, help="Long listing format."
 )
@@ -79,35 +80,39 @@ def save(
 )
 @click.option("--prefix", default="")
 @click.pass_obj
-def run(vault: LazyVault, name: str, long: bool, relative_to: Path, prefix: str):
-    """POC implementation"""
+def run(vault: LazyVault, pattern: str, long: bool, relative_to: Path, prefix: str):
     import json
 
     from filetags.parser import parse
 
     with vault as conn:
-        params = crud.query.get_by_name(conn, name)
+        queries = crud.query.get_all(conn)
 
-        select_nodes = [parse(n) for n in json.loads(params["select_tags"])]
-        exclude_nodes = [parse(n) for n in json.loads(params["exclude_tags"])]
+        for query in queries:
+            if not re.match(pattern, query["name"]):
+                continue
 
-        paths = service.execute_query(
-            conn,
-            select_nodes,
-            exclude_nodes,
-            params["pattern"],
-            bool(params["ignore_case"]),
-            bool(params["invert_match"]),
-        )
+            select_nodes = [parse(n) for n in json.loads(query["select_tags"])]
+            exclude_nodes = [parse(n) for n in json.loads(query["exclude_tags"])]
 
-        if long:
-            files_with_tags = service.get_files_with_tags(conn, paths)
+            paths = service.execute_query(
+                conn,
+                select_nodes,
+                exclude_nodes,
+                query["pattern"],
+                bool(query["ignore_case"]),
+                bool(query["invert_match"]),
+            )
 
-        else:
-            files_with_tags = {f: {} for f in paths}
+            if long:
+                files_with_tags = service.get_files_with_tags(conn, paths)
 
-    for msg in format_file_output(files_with_tags, long, relative_to, prefix):
-        click.echo(msg)
+            else:
+                files_with_tags = {f: {} for f in paths}
+
+            click.echo(f"Query: {query['name']}")
+            for msg in format_file_output(files_with_tags, long, relative_to, prefix):
+                click.echo(msg)
 
 
 @query.command(help="List all saved queries.")
