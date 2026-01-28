@@ -67,7 +67,7 @@ def save(
             crud.query.create(conn, **data)
 
 
-@query.command(help="Run a saved query")
+@query.command(help="Run saved queries")
 @click.argument("pattern", type=str, default=r".*")
 @click.option(
     "-l", "--long", type=click.BOOL, is_flag=True, help="Long listing format."
@@ -85,6 +85,7 @@ def save(
     is_flag=False,
     type=click.Path(path_type=Path),
     flag_value=Path("."),
+    help="Write results to files. Optionally specify output directory (default cwd).",
 )
 @click.pass_obj
 def run(
@@ -142,14 +143,32 @@ def run(
                 click.echo()
 
 
+def ls_long_format(data: dict):
+    import json
+
+    selects = " ".join(f"-s {x}" for x in json.loads(data["select_tags"]))
+    excludes = " ".join(f"-e {x}" for x in json.loads(data["exclude_tags"]))
+    flags = (
+        f"{'-i ' if data['ignore_case'] else ''}{'-v ' if data['invert_match'] else ''}"
+    )
+
+    return f"{selects} {excludes} -p {data['pattern']} {flags}".strip()
+
+
 @query.command(help="List all saved queries.")
+@click.option("-l", "--long", is_flag=True)
 @click.pass_obj
-def ls(vault: LazyVault):
+def ls(vault: LazyVault, long: bool):
     with vault as conn:
         records = crud.query.get_all(conn)
 
     for record in records:
-        click.echo(dict(record))
+        msg = click.style(record["name"], fg="yellow")
+
+        if long:
+            msg += click.style(f" {ls_long_format(record)}", fg="blue")
+
+        click.echo(msg)
 
 
 @query.command(help="Delete query.")
