@@ -139,6 +139,7 @@ def run(
             if write:
                 path = write / query["name"]
 
+                click.echo(f"Writing {path}")
                 with open(path, "w") as f:
                     for msg in output_lines:
                         click.echo(msg, f)
