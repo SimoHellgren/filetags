@@ -17,12 +17,14 @@ class Tag:
 @dataclass
 class Xor:
     """Binary XOR - true when odd number of operands are true."""
+
     operands: list["Expr"]
 
 
 @dataclass
 class OnlyOne:
     """Exactly one of - true when exactly one operand is true."""
+
     operands: list["Expr"]
 
 
@@ -125,19 +127,22 @@ class Transformer(lark.Transformer):
         return Tag(name="xor", children=children[1])
 
     def null_expr(self, children):
-        if len(children) == 0:
+        # children[0] is the NULL token, children[1] (if present) is the query
+        if len(children) == 1:
             return Null()
-        return Null(children=children[0])
+        return Null(children=children[1])
 
     def wildcard_single(self, children):
-        if len(children) == 0:
+        # children[0] is the SINGLE_STAR token, children[1] (if present) is the query
+        if len(children) == 1:
             return WildcardSingle()
-        return WildcardSingle(children=children[0])
+        return WildcardSingle(children=children[1])
 
     def wildcard_path(self, children):
-        if len(children) == 0:
+        # children[0] is the DOUBLE_STAR token, children[1] (if present) is the query
+        if len(children) == 1:
             return WildcardPath()
-        return WildcardPath(children=children[0])
+        return WildcardPath(children=children[1])
 
     def wildcard_bounded(self, children):
         # First child is the max_depth (from BOUNDED_WILDCARD terminal)
@@ -148,15 +153,150 @@ class Transformer(lark.Transformer):
 
 
 Expr = (
-    Tag | And | Or | Xor | OnlyOne | Not | Null | WildcardSingle | WildcardPath | WildcardBounded
+    Tag
+    | And
+    | Or
+    | Xor
+    | OnlyOne
+    | Not
+    | Null
+    | WildcardSingle
+    | WildcardPath
+    | WildcardBounded
 )
 
-p = parser.parse
-t = Transformer().transform
+
+# Query plan stuff
+@dataclass
+class SegmentTag:
+    name: str
+
+
+@dataclass
+class SegmentWildCardSingle:
+    """Matches any single tag (*)"""
+
+    pass
+
+
+@dataclass
+class SegmentWildCardPath:
+    """Matches zore or more tags (**)"""
+
+    pass
+
+
+@dataclass
+class SegmentWildCardBounded:
+    """Matches up to n tags (*n*)"""
+
+    max_depth: int
+
+
+@dataclass
+class SegmentNull:
+    """Matches root/leaf nodes (~[...] / ...[~])"""
+
+    pass
+
+
+Segment = (
+    SegmentTag
+    | SegmentWildCardSingle
+    | SegmentWildCardPath
+    | SegmentWildCardBounded
+    | SegmentNull
+)
+
+
+@dataclass
+class TagPath:
+    segments: list[Segment]
+
+
+@dataclass
+class QP_And:
+    operands: list["QueryPlan"]
+
+
+@dataclass
+class QP_Or:
+    operands: list["QueryPlan"]
+
+
+@dataclass
+class QP_Xor:
+    operands: list["QueryPlan"]
+
+
+@dataclass
+class QP_OnlyOne:
+    operands: list["QueryPlan"]
+
+
+@dataclass
+class QP_Not:
+    operand: "QueryPlan"
+
+
+QueryPlan = QP_And | QP_Or | QP_Xor | QP_OnlyOne | QP_Not | TagPath
+
+
+def to_query_plan(node: Expr, prefix: list[Segment] | None = None) -> QueryPlan:
+    prefix = prefix or []
+    match node:
+        case Tag(name, None):
+            return TagPath(prefix + [SegmentTag(name)])
+
+        case Tag(name, children):
+            return to_query_plan(children, prefix + [SegmentTag(name)])
+
+        case WildcardSingle(None):
+            return TagPath(prefix + [SegmentWildCardSingle()])
+
+        case WildcardSingle(children):
+            return to_query_plan(children, prefix + [SegmentWildCardSingle()])
+
+        case WildcardPath(None):
+            return TagPath(prefix + [SegmentWildCardPath()])
+
+        case WildcardPath(children):
+            return to_query_plan(children, prefix + [SegmentWildCardPath()])
+
+        case WildcardBounded(max_depth):
+            return TagPath(prefix + [SegmentWildCardBounded(max_depth)])
+
+        case WildcardBounded(max_depth, children):
+            return to_query_plan(children, prefix + [SegmentWildCardBounded(max_depth)])
+
+        case Null(None):
+            return TagPath(prefix + [SegmentNull()])
+
+        case Null(children):
+            return to_query_plan(children, prefix + [SegmentNull()])
+
+        case Or(operands):
+            return QP_Or([to_query_plan(op, prefix) for op in operands])
+
+        case And(operands):
+            return QP_And([to_query_plan(op, prefix) for op in operands])
+
+        case Xor(operands):
+            return QP_Xor([to_query_plan(op, prefix) for op in operands])
+
+        case OnlyOne(operands):
+            return QP_OnlyOne([to_query_plan(op, prefix) for op in operands])
+
+        case Not(operand):
+            return QP_Not(to_query_plan(operand, prefix))
 
 
 if __name__ == "__main__":
+    p = parser.parse
+    t = Transformer().transform
     import sys
 
     x = sys.argv[1]
-    print(t(p(x)))
+    ast = t(p(x))
+    print(ast)
+    print(to_query_plan(ast))
