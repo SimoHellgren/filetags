@@ -288,7 +288,12 @@ def to_query_plan(node: Expr, prefix: list[Segment] | None = None) -> QueryPlan:
             return QP_OnlyOne([to_query_plan(op, prefix) for op in operands])
 
         case Not(operand):
-            return QP_Not(to_query_plan(operand, prefix))
+            inner = to_query_plan(operand, prefix)
+            if prefix:
+                # a[!b] == a,!a[b]
+                return QP_And([TagPath(prefix), QP_Not(inner)])
+
+            return QP_Not(inner)
 
 
 if __name__ == "__main__":
