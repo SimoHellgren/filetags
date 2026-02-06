@@ -215,19 +215,8 @@ class SegmentWildCardBounded:
     max_depth: int
 
 
-@dataclass
-class SegmentNull:
-    """Matches root/leaf nodes (~[...] / ...[~])"""
-
-    pass
-
-
 Segment = (
-    SegmentTag
-    | SegmentWildCardSingle
-    | SegmentWildCardPath
-    | SegmentWildCardBounded
-    | SegmentNull
+    SegmentTag | SegmentWildCardSingle | SegmentWildCardPath | SegmentWildCardBounded
 )
 
 
@@ -482,8 +471,14 @@ def find_all(conn, path: TagPath, case):
                 )
         )
 
-        SELECT DISTINCT file_id FROM match 
-        WHERE depth = (SELECT MAX(depth) FROM path)
+        SELECT DISTINCT match.file_id FROM match
+        JOIN path ON path.depth = match.depth
+        WHERE match.depth = (SELECT MAX(depth) FROM path)
+        AND (
+            path.is_leaf = 0
+            OR
+            NOT EXISTS (SELECT 1 FROM file_tag WHERE file_tag.parent_id = match.id)
+        )
     """
     return {x["file_id"] for x in conn.execute(q, values).fetchall()}
 
