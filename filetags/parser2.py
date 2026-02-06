@@ -400,14 +400,14 @@ def simplify(qp: QueryPlan) -> QueryPlan:
 import sqlite3  # noqa
 from itertools import chain  # noqa
 from filetags import crud  # noqa
-from functools import reduce, partial  # noqa
+from functools import reduce, cache  # noqa
 from collections import Counter  # noqa
 
 flatten = chain.from_iterable
 
 
 def _build_value(segment: Segment):
-    """Returns pairs of (name, is_any)"""
+    """Returns tuples of (name, is_any, is_root, is_leaf)"""
     match segment:
         case SegmentTag(name, is_root, is_leaf):
             return (name, 0, is_root, is_leaf)
@@ -485,36 +485,44 @@ def find_all(conn, path: TagPath, case):
 
 # missing: wilcard handling, recursive matches (** & *n*), case insensitive
 def execute(conn: sqlite3.Connection, qp: QueryPlan, case: bool = True):
-    # partial for keeping calls simpler
-    _exec = partial(execute, conn, case=case)
-    match qp:
-        case TagPath(segments):
-            return find_all(conn, segments, case)
+    # cached func for use with NOT
+    @cache
+    def get_all_file_ids():
+        return {x["id"] for x in crud.file.get_all(conn)}
 
-        case QP_And(operands):
-            # short circuit if any set is empty
-            first, *rest = operands
-            result = _exec(first)
-            for op in rest:
-                if not result:
-                    return set()
-                result &= _exec(op)
-            return result
+    def _exec(qp: QueryPlan):
+        """Inner function to simplify calling and caching"""
 
-        case QP_Or(operands):
-            # short circuit technically possible, but would require identifying
-            # when "all" records were returned
-            return set.union(*(_exec(op) for op in operands))
+        match qp:
+            case TagPath(segments):
+                return find_all(conn, segments, case)
 
-        case QP_Xor(operands):
-            return reduce(lambda a, b: a ^ b, (_exec(op) for op in operands))
+            case QP_And(operands):
+                # short circuit if any set is empty
+                first, *rest = operands
+                result = _exec(first)
+                for op in rest:
+                    if not result:
+                        return set()
+                    result &= _exec(op)
+                return result
 
-        case QP_OnlyOne(operands):
-            c = Counter(flatten(_exec(op) for op in operands))
-            return {x for x, count in c.items() if count == 1}
+            case QP_Or(operands):
+                # short circuit technically possible, but would require identifying
+                # when "all" records were returned
+                return set.union(*(_exec(op) for op in operands))
 
-        case QP_Not(operand):
-            return NotImplemented
+            case QP_Xor(operands):
+                return reduce(lambda a, b: a ^ b, (_exec(op) for op in operands))
+
+            case QP_OnlyOne(operands):
+                c = Counter(flatten(_exec(op) for op in operands))
+                return {x for x, count in c.items() if count == 1}
+
+            case QP_Not(operand):
+                return get_all_file_ids() - _exec(operand)
+
+    return _exec(qp)
 
 
 if __name__ == "__main__":
