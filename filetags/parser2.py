@@ -395,10 +395,13 @@ from collections import Counter  # noqa
 flatten = chain.from_iterable
 
 
-def find_all(conn, path):
+def find_all(conn, path, case):
     values_ph = ", ".join("(?,?)" for _ in path)
     # enumerate to get positions / depth
     values = tuple(flatten(enumerate(path, 1)))
+
+    # configure case sensitivity
+    collate_clause = "" if case else "COLLATE NOCASE"
 
     q = f"""
         WITH path(depth, tag_name) AS (
@@ -414,7 +417,7 @@ def find_all(conn, path):
             JOIN tag ON tag.id = file_tag.tag_id
             JOIN path
                 ON path.depth = 1
-                AND path.tag_name = tag.name
+                AND path.tag_name = tag.name {collate_clause}
 
             UNION ALL
 
@@ -429,7 +432,7 @@ def find_all(conn, path):
             JOIN tag ON child.tag_id = tag.id
             JOIN path
                 ON path.depth = parent.depth + 1
-                AND path.tag_name = tag.name 
+                AND path.tag_name = tag.name {collate_clause}
         )
 
         SELECT DISTINCT file_id FROM match 
@@ -439,35 +442,34 @@ def find_all(conn, path):
 
 
 # missing: wilcard handling, recursive matches (** & *n*), case insensitive
-def execute(conn: sqlite3.Connection, qp: QueryPlan):
+def execute(conn: sqlite3.Connection, qp: QueryPlan, case: bool = True):
+    # partial for keeping calls simpler
+    _exec = partial(execute, conn, case=case)
     match qp:
         case TagPath(segments):
             path = [s.name for s in segments]
-
-            vals = find_all(conn, path)
-            print(f"{vals=}")
-            return vals
+            return find_all(conn, path, case)
 
         case QP_And(operands):
             # short circuit if any set is empty
             first, *rest = operands
-            result = execute(conn, first)
+            result = _exec(first)
             for op in rest:
                 if not result:
                     return set()
-                result &= execute(conn, op)
+                result &= _exec(op)
             return result
 
         case QP_Or(operands):
             # short circuit technically possible, but would require identifying
             # when "all" records were returned
-            return set.union(*(execute(conn, op) for op in operands))
+            return set.union(*(_exec(op) for op in operands))
 
         case QP_Xor(operands):
-            return reduce(lambda a, b: a ^ b, (execute(conn, op) for op in operands))
+            return reduce(lambda a, b: a ^ b, (_exec(op) for op in operands))
 
         case QP_OnlyOne(operands):
-            c = Counter(flatten(execute(conn, op) for op in operands))
+            c = Counter(flatten(_exec(op) for op in operands))
             return {x for x, count in c.items() if count == 1}
 
         case QP_Not(operand):
@@ -480,6 +482,11 @@ if __name__ == "__main__":
     import sys
 
     x = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        case = bool(int(sys.argv[2]))
+    else:
+        case = True
 
     ast = t(p(x))
     print(ast)
@@ -494,7 +501,8 @@ if __name__ == "__main__":
 
     with sqlite3.connect("vault.db") as conn:
         conn.row_factory = sqlite3.Row
-        res = execute(conn, simplified)
+        # conn.set_trace_callback(print)
+        res = execute(conn, simplified, case)
         files = crud.file.get_many(conn, list(res))
 
     print(res)
