@@ -285,17 +285,11 @@ def to_query_plan(
 
             return to_query_plan(children, prefix + [seg])
 
-        case WildcardPath(None):
-            return TagPath(prefix + [SegmentWildCardPath(is_root=is_root)])
+        case WildcardPath():
+            raise NotImplementedError("** (path wildcard) is not yet supported in queries")
 
-        case WildcardPath(children):
-            return to_query_plan(children, prefix + [SegmentWildCardPath()])
-
-        case WildcardBounded(max_depth):
-            return TagPath(prefix + [SegmentWildCardBounded(max_depth)])
-
-        case WildcardBounded(max_depth, children):
-            return to_query_plan(children, prefix + [SegmentWildCardBounded(max_depth)])
+        case WildcardBounded():
+            raise NotImplementedError("*n* (bounded wildcard) is not yet supported in queries")
 
         case Null(None):
             # ~ alone: any root-level leaf
@@ -483,7 +477,6 @@ def find_all(conn, path: TagPath, case):
     return {x["file_id"] for x in conn.execute(q, values).fetchall()}
 
 
-# missing: wilcard handling, recursive matches (** & *n*), case insensitive
 def execute(conn: sqlite3.Connection, qp: QueryPlan, case: bool = True):
     # cached func for use with NOT
     @cache
