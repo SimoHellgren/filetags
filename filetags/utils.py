@@ -41,8 +41,8 @@ def format_file_output(
 
         msg = click.style(display_path, fg="green")
 
-        if long:
-            roots = data["roots"]
-            msg += "\t" + click.style(",".join(str(root) for root in roots), fg="cyan")
+        # walrus protects from printin "None" when there are no tags
+        if long and (ast := data["ast"]):
+            msg += "\t" + click.style(ast, fg="cyan")
 
         yield msg

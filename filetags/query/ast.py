@@ -8,12 +8,21 @@ class Tag:
     name: str
     children: "Expr | None" = None
 
+    def __str__(self) -> str:
+        if not self.children:
+            return self.name
+
+        return f"{self.name}[{self.children}]"
+
 
 @dataclass
 class Xor:
     """Binary XOR - true when odd number of operands are true."""
 
     operands: list["Expr"]
+
+    def __str__(self) -> str:
+        return "^".join(str(op) for op in self.operands)
 
 
 @dataclass
@@ -22,41 +31,78 @@ class OnlyOne:
 
     operands: list["Expr"]
 
+    def __str__(self) -> str:
+        ops = ",".join(str(op) for op in self.operands)
+        return f"xor({ops})"
+
 
 @dataclass
 class And:
     operands: list["Expr"]
+
+    def __str__(self) -> str:
+        return ",".join(str(op) for op in self.operands)
 
 
 @dataclass
 class Or:
     operands: list["Expr"]
 
+    def __str__(self) -> str:
+        return "|".join(str(op) for op in self.operands)
+
 
 @dataclass
 class Not:
     operand: "Expr"
+
+    def __str__(self) -> str:
+        return f"!{self.operand}"
 
 
 @dataclass
 class Null:
     children: "Expr | None" = None
 
+    def __str__(self) -> str:
+        if not self.children:
+            return "~"
+
+        return f"~[{self.children}]"
+
 
 @dataclass
 class WildcardSingle:
     children: "Expr | None" = None
+
+    def __str__(self) -> str:
+        if not self.children:
+            return "*"
+
+        return f"*[{self.children}]"
 
 
 @dataclass
 class WildcardPath:
     children: "Expr | None" = None
 
+    def __str__(self) -> str:
+        if not self.children:
+            return "**"
+
+        return f"**[{self.children}]"
+
 
 @dataclass
 class WildcardBounded:
     max_depth: int
     children: "Expr | None" = None
+
+    def __str__(self) -> str:
+        if not self.children:
+            return f"*{self.max_depth}*"
+
+        return f"*{self.max_depth}*[{self.children}]"
 
 
 class Transformer(lark.Transformer):

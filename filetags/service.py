@@ -9,6 +9,48 @@ from filetags.query.ast import And, Expr, Tag
 from filetags.utils import compile_pattern
 
 
+# utilities for turning the db file_tag structures to AST and paths
+def _db_to_ast(file_tags: list[Row]) -> Expr:
+    """Turn db file_tag rows into an AST (with AND)"""
+    nodes: dict[int, Tag] = {}
+    children: dict[int, list[Tag]] = defaultdict(list)
+    roots: list[Tag] = []
+
+    for row in file_tags:
+        tag = Tag(name=row["name"])
+        nodes[row["id"]] = tag
+        if row["parent_id"] is None:
+            roots.append(tag)
+        else:
+            children[row["parent_id"]].append(tag)
+
+    # wire up children
+    for id_, tag in nodes.items():
+        kids = children[id_]
+        if len(kids) == 1:
+            tag.children = kids[0]
+        elif len(kids) > 1:
+            tag.children = And(kids)
+
+    if len(roots) == 1:
+        return roots[0]
+    return And(roots)
+
+
+def _ast_to_paths(node: Expr, prefix=()) -> list[tuple[str, ...]]:
+    match node:
+        case Tag(name, None):
+            return [prefix + (name,)]
+        case Tag(name, children):
+            return _ast_to_paths(children, prefix + (name,))
+        case And(operands):
+            return [p for op in operands for p in _ast_to_paths(op, prefix)]
+
+
+def _db_tags_to_paths(file_tags: list[Row]) -> set[tuple[str, ...]]:
+    return set(_ast_to_paths(_db_to_ast(file_tags)))
+
+
 def attach_tree(
     conn: Connection, file_id: int, node: Expr, parent_id: int | None = None
 ):
@@ -43,16 +85,6 @@ def add_tags_to_files(
         )
 
 
-def _ast_to_paths(node: Expr, prefix=()) -> list[tuple[str, ...]]:
-    match node:
-        case Tag(name, None):
-            return [prefix + (name,)]
-        case Tag(name, children):
-            return _ast_to_paths(children, prefix + (name,))
-        case And(operands):
-            return [p for op in operands for p in _ast_to_paths(op, prefix)]
-
-
 def remove_tags_from_files(conn: Connection, files: list[Path], tags: list[str]):
     # non-existing files are skipped here due to how get_many_by_path works.
     file_ids = [x["id"] for x in crud.file.get_many_by_path(conn, files)]
@@ -68,51 +100,6 @@ def remove_tags_from_files(conn: Connection, files: list[Path], tags: list[str])
                 file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
                 if file_tag_id:
                     crud.file_tag.detach(conn, file_tag_id)
-
-
-def build_tree(file_tags: list) -> list[Node]:
-    roots: list[Node] = []
-    nodes: dict[str | None, Node] = {}
-
-    # construct nodes
-    for id_, tag, parent_id in file_tags:
-        nodes[id_] = Node(value=tag)
-
-    # add children & record root nodes
-    for id_, _, parent_id in file_tags:
-        node = nodes[id_]
-        if parent_id is None:
-            roots.append(node)
-        else:
-            nodes[parent_id].add_child(node)
-
-    return roots
-
-
-def _db_tags_to_paths(file_tags: list[Row]) -> set[tuple[str, ...]]:
-    roots = []
-    children = defaultdict(list)
-
-    for row in file_tags:
-        parent = row["parent_id"]
-        target = roots if parent is None else children[parent]
-        target.append(row)
-
-    paths = []
-
-    def walk(row, prefix):
-        path = prefix + (row["name"],)
-        kids = children[row["id"]]
-        if not kids:
-            paths.append(path)
-        else:
-            for kid in kids:
-                walk(kid, path)
-
-    for root in roots:
-        walk(root, ())
-
-    return set(paths)
 
 
 def set_tags_on_files(
@@ -150,14 +137,14 @@ def drop_file_tags(conn: Connection, files: list[Path], retain_file: bool = Fals
             crud.file.delete(conn, file_id)
 
 
-def get_files_with_tags(conn: Connection, files: list[Path]) -> dict[Path, list[Node]]:
+def get_files_with_tags(conn: Connection, files: list[Path]) -> dict[Path, Expr]:
     # TODO: turn into a proper batch get
     file_records = crud.file.get_many_by_path(conn, files)
     tags = [crud.file_tag.get_by_file_id(conn, file["id"]) for file in file_records]
-    roots = [build_tree(tag) for tag in tags]
+    asts = [_db_to_ast(tag) if tag else None for tag in tags]
 
     return {
-        Path(f["path"]): {"file": f, "roots": r} for f, r in zip(file_records, roots)
+        Path(f["path"]): {"file": f, "ast": ast} for f, ast in zip(file_records, asts)
     }
 
 

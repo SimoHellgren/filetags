@@ -150,7 +150,6 @@ def ls(
 
         if long:
             files_with_tags = service.get_files_with_tags(conn, paths)
-
         else:
             files_with_tags = {f: {} for f in paths}
 
