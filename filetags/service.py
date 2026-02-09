@@ -187,10 +187,15 @@ def execute_query(
     invert_match: bool = False,
 ) -> list[Path]:
 
-    selects = "|".join(select_strs)
-    excludes = "|".join(exclude_strs)
+    query_parts = []
 
-    query_str = selects + (f",!{excludes}" if excludes else "")
+    if select_strs:
+        query_parts.append("|".join(select_strs))
+
+    if exclude_strs:
+        query_parts.append("|".join(f"!{e}" for e in exclude_strs))
+
+    query_str = ",".join(query_parts)
 
     if query_str:
         ids = search(conn, query_str, True)
