@@ -6,12 +6,12 @@ from filetags.models.node import Node
 from filetags.utils import flatten
 
 
-def resolve_path(conn: Connection, file_id: int, path: tuple[Node, ...]) -> int:
+def resolve_path(conn: Connection, file_id: int, path: tuple[str, ...]) -> int:
     """Finds the lowest node of a path and returns file_tag.id if said path exists for file."""
     # TODO: this could probably be implemented as a special case of find_all, or at
     # least utilize similar recursive logic.
     parent_id = None
-    for node in path:
+    for tag in path:
         row = conn.execute(
             """
             SELECT file_tag.id
@@ -25,7 +25,7 @@ def resolve_path(conn: Connection, file_id: int, path: tuple[Node, ...]) -> int:
             )
                     
         """,
-            (file_id, node.value, parent_id, parent_id),
+            (file_id, tag, parent_id, parent_id),
         ).fetchone()
 
         if not row:

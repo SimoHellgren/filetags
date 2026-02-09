@@ -68,10 +68,8 @@ def add(
 @click.option("-t", "tags", required=True, type=click.STRING, multiple=True)
 @click.pass_obj
 def remove(vault: LazyVault, files: tuple[Path, ...], tags: tuple[str, ...]):
-    root_tags = list(flatten(parse(t).children for t in tags))
-
     with vault as conn:
-        service.remove_tags_from_files(conn, files, root_tags)
+        service.remove_tags_from_files(conn, files, tags)
 
 
 @cli.command(help="Replace tags on files", name="set")

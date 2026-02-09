@@ -25,15 +25,15 @@ def attach_tree(
 
 
 def add_tags_to_files(
-    conn: Connection, files: list[Path], tags: list[str], apply_tagalongs: bool = True
+    conn: Connection, files: list[Path], node: list[str], apply_tagalongs: bool = True
 ):
     file_ids = [x["id"] for x in crud.file.get_or_create_many(conn, files)]
 
-    tag_expr = ",".join(tags)
-    tags = parse_for_storage(tag_expr)
+    tag_expr = ",".join(node)
+    node = parse_for_storage(tag_expr)
 
     for file_id in file_ids:
-        attach_tree(conn, file_id, tags)
+        attach_tree(conn, file_id, node)
 
     if apply_tagalongs:
         crud.tagalong.apply(
@@ -42,13 +42,28 @@ def add_tags_to_files(
         )
 
 
-def remove_tags_from_files(conn: Connection, files: list[Path], tags: list[Node]):
+def _ast_to_paths(node: Expr, prefix=()) -> list[tuple[str, ...]]:
+    match node:
+        case Tag(name, None):
+            return [prefix + (name,)]
+        case Tag(name, children):
+            return _ast_to_paths(children, prefix + (name,))
+        case And(operands):
+            return [p for op in operands for p in _ast_to_paths(op, prefix)]
+
+
+def remove_tags_from_files(conn: Connection, files: list[Path], tags: list[str]):
     # non-existing files are skipped here due to how get_many_by_path works.
     file_ids = [x["id"] for x in crud.file.get_many_by_path(conn, files)]
 
+    tag_expr = ",".join(tags)
+    node = parse_for_storage(tag_expr)
+
+    tag_paths = _ast_to_paths(node)
+
     for file_id in file_ids:
         for tag in tags:
-            for path in tag.paths_down():
+            for path in tag_paths:
                 file_tag_id = crud.file_tag.resolve_path(conn, file_id, path)
                 if file_tag_id:
                     crud.file_tag.detach(conn, file_tag_id)
