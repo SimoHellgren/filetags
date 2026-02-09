@@ -53,10 +53,8 @@ def add(
     tags: tuple[str, ...],
     tagalongs: bool,
 ):
-    root_tags = list(flatten(parse(t).children for t in tags))
-
     with vault as conn:
-        service.add_tags_to_files(conn, files, root_tags, tagalongs)
+        service.add_tags_to_files(conn, files, tags, tagalongs)
 
 
 @cli.command(help="Remove tags from files")

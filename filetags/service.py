@@ -3,27 +3,37 @@ from sqlite3 import Connection, Row
 
 from filetags import crud
 from filetags.models.node import Node
-from filetags.query import search
+from filetags.query import parse_for_storage, search
+from filetags.query.ast import And, Expr, Tag
 from filetags.utils import compile_pattern, flatten
 
 
 def attach_tree(
-    conn: Connection, file_id: int, node: Node, parent_id: int | None = None
+    conn: Connection, file_id: int, node: Expr, parent_id: int | None = None
 ):
-    tag = crud.tag.get_or_create(conn, node.value)
-    filetag_id = crud.file_tag.attach(conn, file_id, tag["id"], parent_id)
-    for child in node.children:
-        attach_tree(conn, file_id, child, filetag_id)
+    match node:
+        case Tag(name, None):
+            tag = crud.tag.get_or_create(conn, name)
+            crud.file_tag.attach(conn, file_id, tag["id"], parent_id)
+        case Tag(name, children):
+            tag = crud.tag.get_or_create(conn, name)
+            filetag_id = crud.file_tag.attach(conn, file_id, tag["id"], parent_id)
+            attach_tree(conn, file_id, children, filetag_id)
+        case And(operands):
+            for op in operands:
+                attach_tree(conn, file_id, op, parent_id)
 
 
 def add_tags_to_files(
-    conn: Connection, files: list[Path], tags: list[Node], apply_tagalongs: bool = True
+    conn: Connection, files: list[Path], tags: list[str], apply_tagalongs: bool = True
 ):
     file_ids = [x["id"] for x in crud.file.get_or_create_many(conn, files)]
 
+    tag_expr = ",".join(tags)
+    tags = parse_for_storage(tag_expr)
+
     for file_id in file_ids:
-        for tag in tags:
-            attach_tree(conn, file_id, tag)
+        attach_tree(conn, file_id, tags)
 
     if apply_tagalongs:
         crud.tagalong.apply(
