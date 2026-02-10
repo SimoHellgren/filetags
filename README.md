@@ -49,6 +49,8 @@ xor(a,b,c)                   # exactly one of
 
 Operator precedence (highest first): `!`, `,`, `|`, `^`.
 
+See [tagumori/query/algebra.md](tagumori/query/algebra.md) for the full algebra reference (distribution, negation semantics, wildcard identities, etc.).
+
 ## Tagalongs
 
 Tagalongs automatically apply tags when another tag is present:
