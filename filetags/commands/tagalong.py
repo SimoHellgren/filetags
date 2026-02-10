@@ -44,7 +44,9 @@ def remove(vault: LazyVault, tag: tuple[str, ...], tagalong: tuple[str, ...]):
 def ls(vault: LazyVault):
     # TODO: Consider adding a grep-like filter if such would prove to be useful
     with vault as conn:
-        for tag, tagalong in crud.tagalong.get_all_names(conn):
+        for tag, tagalong in sorted(
+            crud.tagalong.get_all_names(conn), key=lambda x: x["name"]
+        ):
             click.echo(f"{tag} -> {tagalong}")
 
 

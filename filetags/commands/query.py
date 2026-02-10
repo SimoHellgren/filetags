@@ -166,7 +166,7 @@ def ls_long_format(data: dict):
 @click.pass_obj
 def ls(vault: LazyVault, long: bool):
     with vault as conn:
-        records = crud.query.get_all(conn)
+        records = sorted(crud.query.get_all(conn), key=lambda x: x["name"])
 
     for record in records:
         msg = click.style(record["name"], fg="yellow")

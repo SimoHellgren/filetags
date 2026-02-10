@@ -105,7 +105,7 @@ def list_tags(
     invert_match: bool,
 ):
     with vault as conn:
-        tags = crud.tag.get_all(conn)
+        tags = sorted(crud.tag.get_all(conn), key=lambda x: x["name"])
 
     regex = compile_pattern(pattern, ignore_case)
 
