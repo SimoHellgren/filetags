@@ -108,6 +108,16 @@ class TestFileDrop:
         assert result.exit_code == 0
         assert "2 file(s)" in result.output
 
+    def test_drop_nonexistent_file(self, runner, vault, tagged_file):
+        """Dropping a file that was deleted from disk should still work."""
+        tagged_file.unlink()
+
+        result = runner.invoke(
+            cli, ["--vault", str(vault), "file", "drop", str(tagged_file)], input="y\n"
+        )
+
+        assert result.exit_code == 0
+
     def test_drop_file_with_tags(self, runner, vault, tagged_file):
         """Dropping a file should also remove its tags."""
         result = runner.invoke(
