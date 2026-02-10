@@ -114,9 +114,7 @@ def add(vault: LazyVault, files: Sequence[Path]):
 
 
 @file.command(help="Drop files from db.")
-@click.argument(
-    "files", nargs=-1, type=click.Path(path_type=Path, exists=True, dir_okay=False)
-)
+@click.argument("files", nargs=-1, type=click.Path(path_type=Path, dir_okay=False))
 @click.pass_obj
 def drop(vault: LazyVault, files: Sequence[Path]):
     with vault as conn:
