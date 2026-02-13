@@ -312,14 +312,14 @@ class TestFileTag:
 
         crud.file_tag.detach(conn, file_tag_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_id)
+        rows = crud.file_tag.get_by_file_ids(conn, [file_id])
         assert rows == []
 
     def test_get_by_file_id(self, conn, file_and_tag):
         file_id, tag_id = file_and_tag
         crud.file_tag.attach(conn, file_id, tag_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_id)
+        rows = crud.file_tag.get_by_file_ids(conn, [file_id])
 
         assert len(rows) == 1
         assert rows[0]["name"] == "rock"
@@ -330,7 +330,7 @@ class TestFileTag:
 
         crud.file_tag.drop_for_file(conn, file_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_id)
+        rows = crud.file_tag.get_by_file_ids(conn, [file_id])
         assert rows == []
 
     def test_replace(self, conn, file_and_tag):
@@ -340,7 +340,7 @@ class TestFileTag:
 
         crud.file_tag.replace(conn, tag_id, new_tag["id"])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_id)
+        rows = crud.file_tag.get_by_file_ids(conn, [file_id])
         assert rows[0]["name"] == "jazz"
 
 
@@ -388,7 +388,7 @@ class TestTagalong:
 
         crud.tagalong.apply(conn, [file_row["id"]])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         tag_names = {r["name"] for r in rows}
         assert tag_names == {"rock", "guitar"}
 
@@ -406,7 +406,7 @@ class TestTagalong:
 
         crud.tagalong.apply(conn, [file_row["id"]])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         tag_names = {r["name"] for r in rows}
         assert tag_names == {"A", "B", "C"}
 
@@ -424,7 +424,7 @@ class TestTagalong:
         # Should complete without hanging
         crud.tagalong.apply(conn, [file_row["id"]])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         tag_names = {r["name"] for r in rows}
         assert tag_names == {"A", "B"}
 
@@ -444,7 +444,7 @@ class TestTagalong:
         # Should complete without hanging
         crud.tagalong.apply(conn, [file_row["id"]])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         tag_names = {r["name"] for r in rows}
         assert tag_names == {"A", "B", "C"}
 
@@ -460,7 +460,7 @@ class TestTagalong:
         # Should complete without hanging
         crud.tagalong.apply(conn, [file_row["id"]])
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         tag_names = {r["name"] for r in rows}
         assert tag_names == {"A"}
 
@@ -489,7 +489,7 @@ class TestCascadeDeletes:
         crud.tag.delete(conn, tag_row["id"])
 
         # file_tag should be gone
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         assert rows == []
         # file should still exist
         assert crud.file.get_by_path(conn, Path("test.txt")) is not None
@@ -521,7 +521,7 @@ class TestCascadeDeletes:
         # Delete parent - should cascade to child and grandchild
         crud.file_tag.detach(conn, parent_ft_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         assert rows == []
 
     def test_delete_child_file_tag_preserves_parent(self, conn):
@@ -537,7 +537,7 @@ class TestCascadeDeletes:
 
         crud.file_tag.detach(conn, child_ft_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         assert len(rows) == 1
         assert rows[0]["name"] == "genre"
 
@@ -557,7 +557,7 @@ class TestCascadeDeletes:
         # Delete child - should cascade to grandchild but preserve parent
         crud.file_tag.detach(conn, child_ft_id)
 
-        rows = crud.file_tag.get_by_file_id(conn, file_row["id"])
+        rows = crud.file_tag.get_by_file_ids(conn, [file_row["id"]])
         assert len(rows) == 1
         assert rows[0]["name"] == "genre"
 
