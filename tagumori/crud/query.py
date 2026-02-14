@@ -13,6 +13,7 @@ class QueryCRUD(BaseCRUD):
         name: str,
         select_tags: str,
         exclude_tags: str,
+        ignore_tag_case: bool,
         pattern: str,
         ignore_case: bool,
         invert_match: bool,
@@ -23,12 +24,13 @@ class QueryCRUD(BaseCRUD):
                 name,
                 select_tags,
                 exclude_tags,
+                ignore_tag_case,
                 pattern,
                 ignore_case,
                 invert_match
-            ) VALUES (?, ?, ?, ?, ?, ?) RETURNING *
+            ) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *
             """,
-            (name, select_tags, exclude_tags, pattern, ignore_case, invert_match),
+            (name, select_tags, exclude_tags, ignore_tag_case, pattern, ignore_case, invert_match),
         ).fetchone()
 
     def upsert(
@@ -37,6 +39,7 @@ class QueryCRUD(BaseCRUD):
         name: str,
         select_tags: str,
         exclude_tags: str,
+        ignore_tag_case: bool,
         pattern: str,
         ignore_case: bool,
         invert_match: bool,
@@ -47,21 +50,23 @@ class QueryCRUD(BaseCRUD):
                 name,
                 select_tags,
                 exclude_tags,
+                ignore_tag_case,
                 pattern,
                 ignore_case,
                 invert_match
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (name) DO UPDATE
               SET
                 name=excluded.name,
                 select_tags=excluded.select_tags,
                 exclude_tags=excluded.exclude_tags,
+                ignore_tag_case=excluded.ignore_tag_case,
                 pattern=excluded.pattern,
                 ignore_case=excluded.ignore_case,
                 invert_match=excluded.invert_match
             RETURNING *
             """,
-            (name, select_tags, exclude_tags, pattern, ignore_case, invert_match),
+            (name, select_tags, exclude_tags, ignore_tag_case, pattern, ignore_case, invert_match),
         ).fetchone()
 
 

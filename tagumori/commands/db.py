@@ -123,12 +123,12 @@ def info(vault: LazyVault):
 @db.command(help="Migrate SQLite db to newest version")
 @click.pass_obj
 def migrate(vault: LazyVault):
-    """Simply reapplies schema.sql - assumes idempotent query.
+    """Applies migrations on top of the schema.
     Will reassess if needed.
     """
-    from tagumori.db.init import SCHEMA_PATH
+    from tagumori.db.migrations import migrate
 
     with vault as conn:
-        conn.executescript(SCHEMA_PATH.read_text())
+        migrate(conn)
 
     click.echo("Schema updated")
